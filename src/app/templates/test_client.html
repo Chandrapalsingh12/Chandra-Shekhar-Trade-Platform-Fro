@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Project Pulse - Connection Test</title>
+        <style>
+            body { font-family: monospace; background: #0d1117; color: #c9d1d9; padding: 20px; }
+            #log { border: 1px solid #30363d; height: 300px; overflow-y: scroll; padding: 10px; background: #000; }
+            .price { color: #2ea043; font-weight: bold; }
+            .error { color: #da3633; }
+        </style>
+    </head>
+    <body>
+        <h2>⚡ WebSocket Stream Test</h2>
+        <div>
+            <label>Symbol: <input type="text" id="symbol" value="TSLA" /></label>
+            <button onclick="connect()">Connect</button>
+            <button onclick="disconnect()">Disconnect</button>
+        </div>
+        <br/>
+        <div id="status">Status: Disconnected</div>
+        <h3>Live Feed:</h3>
+        <div id="log"></div>
+
+        <script>
+            let ws = null;
+
+            function connect() {
+                const symbol = document.getElementById("symbol").value;
+                const status = document.getElementById("status");
+                const log = document.getElementById("log");
+
+                // Connect to our FastAPI WebSocket Endpoint
+                ws = new WebSocket(`ws://127.0.0.1:8000/api/v1/market-data/ws/${symbol}`);
+
+                ws.onopen = function() {
+                    status.innerText = `Status: Connected to ${symbol}`;
+                    status.style.color = "#2ea043";
+                    log.innerHTML += `<div>> Connection established...</div>`;
+                };
+
+                ws.onmessage = function(event) {
+                    const data = JSON.parse(event.data);
+                    // Create a timestamp
+                    const time = new Date(data.timestamp * 1000).toLocaleTimeString();
+                    const line = `<div>[${time}] ${data.symbol}: <span class="price">$${data.price}</span></div>`;
+                    
+                    log.innerHTML = line + log.innerHTML; // Prepend new data
+                };
+
+                ws.onclose = function() {
+                    status.innerText = "Status: Disconnected";
+                    status.style.color = "red";
+                    log.innerHTML += `<div>> Connection closed.</div>`;
+                };
+            }
+
+            function disconnect() {
+                if (ws) ws.close();
+            }
+        </script>
+    </body>
+</html>

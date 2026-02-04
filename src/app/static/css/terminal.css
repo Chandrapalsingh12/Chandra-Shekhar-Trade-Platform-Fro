@@ -1,0 +1,854 @@
+/* ========== RESET ========== */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+/* ========== VARIABLES ========== */
+:root {
+    --bg: #0a0e13;
+    --bg2: #111820;
+    --bg3: #1a222d;
+    --border: #2a3441;
+    --accent: #2962ff;
+    --text: #e8e8e8;
+    --muted: #6b7280;
+    --green: #00d4aa;
+    --red: #ff4757;
+    --yellow: #ffc107;
+    --sidebar-width: 200px;
+    --exec-width: 220px;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* ========== APP LAYOUT ========== */
+#app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+/* ========== SIGNAL BAR (scrolling marquee) ========== */
+.signal-bar {
+    height: 36px;
+    background: linear-gradient(90deg, #0d2847, #1a4fd8, #0d2847);
+    display: flex;
+    align-items: center;
+    padding: 0 0 0 16px;
+    gap: 16px;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.signal-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.8);
+    letter-spacing: 1px;
+    flex-shrink: 0;
+    padding-right: 16px;
+    border-right: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.signal-icon {
+    font-size: 14px;
+}
+
+.signal-marquee {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    mask-image: linear-gradient(90deg, transparent, black 5%, black 95%, transparent);
+    -webkit-mask-image: linear-gradient(90deg, transparent, black 5%, black 95%, transparent);
+}
+
+.signal-track {
+    display: flex;
+    gap: 40px;
+    animation: marqueeScroll 60s linear infinite;
+    white-space: nowrap;
+}
+
+.signal-track:hover {
+    animation-play-state: paused;
+}
+
+.signal-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.signal-chip .tf {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+}
+
+.signal-chip .arrow {
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.signal-chip .arrow.up {
+    color: #00ffaa;
+}
+
+.signal-chip .arrow.down {
+    color: #ff5577;
+}
+
+.signal-chip .symbol {
+    font-weight: 700;
+}
+
+.signal-chip .price {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+@keyframes marqueeScroll {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* ========== MAIN CONTENT ========== */
+.content-row {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+}
+
+/* ========== SIDEBARS ========== */
+.sidebar {
+    background: var(--bg2);
+    display: flex;
+    flex-direction: column;
+    transition: width 0.2s ease, min-width 0.2s ease;
+    overflow: hidden;
+}
+
+.left-sidebar {
+    width: var(--sidebar-width);
+    min-width: var(--sidebar-width);
+    border-right: 1px solid var(--border);
+}
+
+.right-sidebar {
+    width: var(--exec-width);
+    min-width: var(--exec-width);
+    border-left: 1px solid var(--border);
+}
+
+.sidebar.collapsed {
+    width: 0 !important;
+    min-width: 0 !important;
+    border: none;
+}
+
+.sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+}
+
+.sidebar-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--muted);
+}
+
+.sidebar-controls {
+    display: flex;
+    gap: 4px;
+}
+
+.pin-btn,
+.collapse-btn {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 4px;
+    font-size: 12px;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+}
+
+.pin-btn:hover,
+.collapse-btn:hover {
+    background: var(--bg3);
+    color: var(--text);
+}
+
+.pin-btn.pinned {
+    color: var(--yellow);
+}
+
+/* Collapsed Indicators */
+.collapsed-indicator {
+    width: 24px;
+    background: var(--bg2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    font-size: 10px;
+    color: var(--muted);
+}
+
+.collapsed-indicator:hover {
+    background: var(--bg3);
+    color: var(--text);
+}
+
+.collapsed-indicator.left {
+    border-right: 1px solid var(--border);
+}
+
+.collapsed-indicator.right {
+    border-left: 1px solid var(--border);
+}
+
+.collapsed-indicator.hidden {
+    display: none;
+}
+
+.collapsed-label {
+    writing-mode: vertical-rl;
+    font-weight: 600;
+    font-size: 9px;
+    letter-spacing: 2px;
+}
+
+/* ========== WATCHLIST ========== */
+.watchlist {
+    flex: 1;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow-y: auto;
+}
+
+.ticker-card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.ticker-card:hover {
+    border-color: var(--accent);
+}
+
+.ticker-card.active {
+    border-color: var(--accent);
+    background: rgba(41, 98, 255, 0.12);
+}
+
+.ticker-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+
+/* Notification Dot (d) */
+.notif-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: transparent;
+    flex-shrink: 0;
+}
+
+.notif-dot.active {
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.3);
+        opacity: 0.7;
+    }
+}
+
+.ticker-symbol {
+    font-size: 13px;
+    font-weight: 700;
+    flex: 1;
+}
+
+.ticker-price {
+    font-size: 11px;
+    color: var(--muted);
+}
+
+/* Arrows Row (b, c, e) */
+.arrows-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 2px;
+}
+
+.arrow-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 0;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    min-width: 22px;
+    text-align: center;
+}
+
+.arrow-box:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.arrow {
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.arrow.up {
+    color: var(--green);
+}
+
+.arrow.down {
+    color: var(--red);
+}
+
+.arrow.neutral {
+    color: var(--muted);
+}
+
+.arrow.blink {
+    animation: arrowBlink 0.5s ease-in-out infinite;
+}
+
+@keyframes arrowBlink {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.2;
+    }
+}
+
+.tf-label {
+    font-size: 8px;
+    color: var(--muted);
+    font-weight: 600;
+}
+
+/* Add Ticker */
+.ticker-card.add-btn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: transparent;
+    border-style: dashed;
+    min-height: 36px;
+}
+
+.plus {
+    font-size: 20px;
+    color: var(--muted);
+}
+
+/* Account Box */
+.account-box {
+    padding: 10px 12px;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+}
+
+.account-box .label {
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--yellow);
+    letter-spacing: 1px;
+}
+
+.account-box .balance {
+    font-size: 14px;
+    font-weight: 800;
+}
+
+/* ========== CHART AREA ========== */
+.chart-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    background: var(--bg);
+}
+
+.chart-header {
+    height: 40px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.active-symbol {
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.live-price {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--green);
+}
+
+/* Charts Container - HORIZONTAL (side by side) */
+.charts-container {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    min-height: 0;
+}
+
+.chart-pane {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 200px;
+    background: var(--bg);
+    border-right: 1px solid var(--border);
+    position: relative;
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.chart-pane:last-child {
+    border-right: none;
+}
+
+/* Active Chart Indicator (ARM Focus) */
+.chart-pane.active {
+    box-shadow:
+        inset 0 0 0 2px var(--accent),
+        0 0 20px rgba(41, 98, 255, 0.4);
+    border-color: var(--accent);
+}
+
+.chart-pane.selected-context {
+    border-color: var(--accent);
+    background: rgba(41, 98, 255, 0.05);
+}
+
+.chart-pane.active::before {
+    content: 'ARMED';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: var(--accent);
+    color: white;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    z-index: 1000;
+    pointer-events: none;
+    box-shadow: 0 2px 8px rgba(41, 98, 255, 0.6);
+}
+
+.chart-widget {
+    flex: 1;
+    min-height: 0;
+}
+
+/* Chart Selector Badge (clickable chart number) */
+.chart-selector-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 28px;
+    height: 28px;
+    background: rgba(26, 34, 45, 0.9);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--muted);
+    cursor: pointer;
+    z-index: 1000;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.chart-selector-badge:hover {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+    transform: scale(1.1);
+}
+
+.chart-pane.selected-context .chart-selector-badge {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+}
+
+/* Chart Controls Overlay (Buy/Sell/Maximize) */
+.chart-controls-overlay {
+    position: absolute;
+    bottom: 40px;
+    left: 10px;
+    display: flex;
+    gap: 8px;
+    z-index: 1000;
+}
+
+.chart-btn {
+    background: rgba(26, 34, 45, 0.95);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: white;
+    text-align: center;
+    line-height: 1.3;
+    min-width: 65px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.chart-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+}
+
+.chart-btn-buy {
+    background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+    border-color: #22c55e;
+}
+
+.chart-btn-buy:hover {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    box-shadow: 0 6px 16px rgba(34, 197, 94, 0.6);
+}
+
+.chart-btn-sell {
+    background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+    border-color: #ef4444;
+}
+
+.chart-btn-sell:hover {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    box-shadow: 0 6px 16px rgba(239, 68, 68, 0.6);
+}
+
+.chart-btn-maximize {
+    min-width: 38px;
+    padding: 10px 12px;
+    background: rgba(26, 34, 45, 0.9);
+    font-size: 16px;
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    bottom: auto;
+    left: auto;
+}
+
+.chart-btn-maximize:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+.price-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    margin-top: 3px;
+    opacity: 1;
+    letter-spacing: 0.3px;
+}
+
+/* Maximized Chart State */
+.chart-pane.maximized {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 9999;
+    flex: none !important;
+}
+
+.chart-pane.maximized~.chart-pane,
+.chart-pane.maximized~.resize-handle {
+    display: none;
+}
+
+/* Resize Handle - HORIZONTAL (between charts) */
+.resize-handle {
+    width: 6px;
+    background: var(--border);
+    cursor: col-resize;
+    transition: background 0.15s ease;
+    flex-shrink: 0;
+}
+
+.resize-handle:hover,
+.resize-handle.active {
+    background: var(--accent);
+}
+
+/* ========== EXECUTION PANEL ========== */
+.exec-content {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.order-toggle {
+    display: flex;
+    gap: 6px;
+}
+
+.btn-toggle {
+    flex: 1;
+    padding: 8px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-toggle:hover {
+    border-color: var(--accent);
+}
+
+.btn-toggle.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+}
+
+.form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.form-row.hidden {
+    display: none;
+}
+
+.form-row label {
+    font-size: 9px;
+    color: var(--muted);
+    font-weight: 600;
+}
+
+.form-row input {
+    padding: 8px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text);
+    font-size: 12px;
+}
+
+.form-row input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.size-box {
+    background: var(--bg);
+    border-radius: 6px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.size-result {
+    text-align: center;
+    padding-top: 6px;
+    border-top: 1px solid var(--border);
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--accent);
+}
+
+.action-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.btn-buy,
+.btn-sell,
+.btn-arm,
+.btn-kill {
+    padding: 10px;
+    border: none;
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-buy {
+    background: var(--green);
+    color: #0a0e13;
+}
+
+.btn-buy:disabled,
+.btn-sell:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.btn-sell {
+    background: var(--red);
+    color: #fff;
+}
+
+.btn-arm {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+}
+
+.btn-arm.armed {
+    background: rgba(0, 212, 170, 0.15);
+    border-color: var(--green);
+    color: var(--green);
+}
+
+.btn-kill {
+    background: rgba(255, 71, 87, 0.15);
+    border: 1px solid var(--red);
+    color: var(--red);
+}
+
+/* ========== TOAST ========== */
+.toast-container {
+    position: fixed;
+    top: 50px;
+    right: 240px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 9999;
+}
+
+.toast {
+    padding: 10px 16px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 11px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    animation: fadeIn 0.3s ease;
+}
+
+.toast.success {
+    border-left: 3px solid var(--green);
+}
+
+.toast.error {
+    border-left: 3px solid var(--red);
+}
+
+.toast.info {
+    border-left: 3px solid var(--accent);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* ========== SCROLLBAR ========== */
+::-webkit-scrollbar {
+    width: 5px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+}

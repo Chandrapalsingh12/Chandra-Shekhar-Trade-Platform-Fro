@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tactical Command - Project Pulse</title>
+    <style>
+        :root { 
+            --bg-dark: #0b0e11; 
+            --panel-bg: #151a21; 
+            --border: #2a313d; 
+            --accent: #2962ff; 
+            --text: #d1d4dc; 
+            --green: #00b3a6; 
+            --red: #f23645; 
+            --yellow: #f0b90b;
+        }
+        body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg-dark); color: var(--text); height: 100vh; display: flex; overflow: hidden; }
+
+        /* --- LAYOUT --- */
+        .sidebar { width: 60px; background: var(--panel-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; padding-top: 15px; gap: 10px; }
+        .main-area { flex: 1; display: flex; flex-direction: column; }
+        
+        /* --- TOP BAR --- */
+        .top-bar { height: 45px; background: var(--panel-bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 15px; gap: 20px; }
+        .symbol-display { display: flex; align-items: baseline; gap: 10px; }
+        .symbol-name { font-size: 18px; font-weight: 700; color: white; }
+        .symbol-price { font-size: 20px; font-weight: 800; }
+        .price-up { color: var(--green); }
+        .price-down { color: var(--red); }
+        .price-change { font-size: 12px; padding: 2px 6px; border-radius: 3px; }
+        .change-up { background: rgba(0,179,166,0.15); color: var(--green); }
+        .change-down { background: rgba(242,54,69,0.15); color: var(--red); }
+        .connection-status { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 11px; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .status-dot.online { background: var(--green); box-shadow: 0 0 6px var(--green); }
+        .status-dot.offline { background: var(--red); }
+
+        .chart-container { flex: 1; position: relative; }
+        .execution-dock { height: 240px; background: var(--panel-bg); border-top: 1px solid var(--border); display: flex; padding: 10px; gap: 10px; overflow-x: auto; }
+
+        /* --- SIDEBAR --- */
+        .ticker-btn { width: 44px; height: 44px; border-radius: 8px; border: 1px solid var(--border); background: #1e222d; color: #787b86; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 9px; transition: 0.2s; flex-direction: column; gap: 2px; }
+        .ticker-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .ticker-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+        .ticker-btn .mini-price { font-size: 8px; font-weight: 400; }
+        .add-ticker { background: transparent; border: 1px dashed var(--border); color: #787b86; font-size: 18px; }
+        .add-ticker:hover { border-color: var(--green); color: var(--green); }
+
+        /* --- DOCK PANELS --- */
+        .panel { background: #1e222d; border-radius: 6px; border: 1px solid var(--border); padding: 12px; flex: 1; display: flex; flex-direction: column; min-width: 180px; }
+        .panel-title { font-size: 10px; text-transform: uppercase; color: #787b86; margin-bottom: 10px; font-weight: 700; letter-spacing: 0.5px; display: flex; justify-content: space-between; align-items: center; }
+        
+        /* --- FORMS --- */
+        .input-group { margin-bottom: 8px; }
+        .input-label { font-size: 10px; color: #787b86; display: block; margin-bottom: 3px; }
+        .input-row { display: flex; gap: 6px; }
+        input, select { background: #2a2e39; border: 1px solid var(--border); color: white; padding: 6px 8px; border-radius: 4px; width: 100%; font-size: 12px; outline: none; }
+        input:focus, select:focus { border-color: var(--accent); }
+        input::placeholder { color: #4a4e59; }
+
+        /* --- BUTTONS --- */
+        .btn { border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 11px; transition: 0.2s; text-align: center; }
+        .btn-green { background: rgba(0, 179, 166, 0.15); color: var(--green); border: 1px solid rgba(0, 179, 166, 0.3); flex: 1; }
+        .btn-green:hover { background: var(--green); color: white; }
+        .btn-red { background: rgba(242, 54, 69, 0.15); color: var(--red); border: 1px solid rgba(242, 54, 69, 0.3); flex: 1; }
+        .btn-red:hover { background: var(--red); color: white; }
+        .btn-gray { background: #2a2e39; color: #b2b5be; border: 1px solid var(--border); }
+        .btn-gray:hover { background: #363a45; color: white; }
+        .btn-kill { background: var(--red); color: white; font-weight: 800; }
+
+        /* --- DISPLAYS --- */
+        .live-calc { font-size: 20px; font-weight: bold; color: var(--accent); }
+        .calc-sub { font-size: 10px; color: #787b86; }
+        .calc-row { display: flex; justify-content: space-between; font-size: 11px; margin-top: 4px; }
+        .calc-row .label { color: #787b86; }
+        .calc-row .value { color: var(--text); font-weight: 600; }
+        .rr-good { color: var(--green); }
+        .rr-bad { color: var(--red); }
+
+        /* --- POSITION CARD --- */
+        .position-card { background: #1a1e26; border-radius: 4px; padding: 8px; margin-bottom: 8px; border-left: 3px solid var(--green); }
+        .position-card.short { border-left-color: var(--red); }
+        .pos-header { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; }
+        .pos-symbol { font-weight: 700; }
+        .pos-pnl { font-weight: 800; }
+        .pos-pnl.profit { color: var(--green); }
+        .pos-pnl.loss { color: var(--red); }
+        .pos-details { font-size: 10px; color: #787b86; }
+
+        /* --- TAGS --- */
+        .strat-tag { font-size: 9px; background: rgba(41,98,255,0.2); padding: 2px 6px; border-radius: 3px; color: var(--accent); }
+        .armed-tag { background: rgba(240,185,11,0.2); color: var(--yellow); }
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR: Watchlist -->
+    <div class="sidebar">
+        <div class="ticker-btn active" onclick="loadTicker('NASDAQ:TSLA', this)" data-symbol="TSLA">
+            TSLA
+            <span class="mini-price" id="price-TSLA">--</span>
+        </div>
+        <div class="ticker-btn" onclick="loadTicker('NASDAQ:NVDA', this)" data-symbol="NVDA">
+            NVDA
+            <span class="mini-price" id="price-NVDA">--</span>
+        </div>
+        <div class="ticker-btn" onclick="loadTicker('CME_MINI:ES1!', this)" data-symbol="ES">
+            ES
+            <span class="mini-price" id="price-ES">--</span>
+        </div>
+        <div class="ticker-btn" onclick="loadTicker('NASDAQ:AAPL', this)" data-symbol="AAPL">
+            AAPL
+            <span class="mini-price" id="price-AAPL">--</span>
+        </div>
+        <div class="ticker-btn add-ticker" onclick="addTicker()">+</div>
+        
+        <div style="margin-top: auto; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px; align-items: center;">
+            <button class="btn btn-kill" style="width: 44px; height: 30px; font-size: 9px;" onclick="killSwitch()">KILL</button>
+            <span style="font-size: 16px; color: #787b86; cursor: pointer;">⚙️</span>
+        </div>
+    </div>
+
+    <div class="main-area">
+        
+        <!-- TOP BAR: Live Price -->
+        <div class="top-bar">
+            <div class="symbol-display">
+                <span class="symbol-name" id="activeSymbol">TSLA</span>
+                <span class="symbol-price price-up" id="livePrice">$152.34</span>
+                <span class="price-change change-up" id="priceChange">+1.25%</span>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <span class="strat-tag">UTBot Active</span>
+                <span class="strat-tag armed-tag" id="armStatus">⚡ ARMED</span>
+            </div>
+            <div class="connection-status">
+                <span class="status-dot online" id="statusDot"></span>
+                <span id="statusText">Live</span>
+            </div>
+        </div>
+        
+        <!-- CHART -->
+        <div class="chart-container" id="tv_chart_container"></div>
+
+        <!-- EXECUTION DOCK -->
+        <div class="execution-dock">
+            
+            <!-- PANEL 1: Smart Entry -->
+            <div class="panel" style="flex: 1;">
+                <div class="panel-title">
+                    Smart Entry
+                    <span class="strat-tag">RISK MODE</span>
+                </div>
+                <div class="input-row" style="margin-bottom: 6px;">
+                    <div style="flex:1">
+                        <span class="input-label">Risk ($)</span>
+                        <input type="number" id="riskAmt" value="10" oninput="calculateSize()">
+                    </div>
+                    <div style="flex:1">
+                        <span class="input-label">Stop Loss</span>
+                        <input type="number" id="stopPrice" value="148.50" step="0.01" oninput="calculateSize()">
+                    </div>
+                </div>
+                <div class="input-row" style="margin-bottom: 6px;">
+                    <div style="flex:1">
+                        <span class="input-label">Take Profit (optional)</span>
+                        <input type="number" id="tpPrice" placeholder="e.g. 158.00" step="0.01" oninput="calculateSize()">
+                    </div>
+                </div>
+                <div style="text-align: center; padding: 8px 0; background: #1a1e26; border-radius: 4px;">
+                    <div class="calc-sub">Position Size</div>
+                    <div class="live-calc" id="calcQty">0 Shares</div>
+                    <div class="calc-row">
+                        <span class="label">Total Risk:</span>
+                        <span class="value" id="totalRisk">$0.00</span>
+                    </div>
+                    <div class="calc-row">
+                        <span class="label">R:R Ratio:</span>
+                        <span class="value rr-good" id="rrRatio">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANEL 2: Stop Strategy -->
+            <div class="panel" style="flex: 0.9;">
+                <div class="panel-title">Stop Strategy</div>
+                <div class="input-group">
+                    <span class="input-label">Initial Stop Type</span>
+                    <select id="stopType">
+                        <option value="manual">Manual Price (Fixed)</option>
+                        <option value="prev_low">Low of Prev Candle - 2¢</option>
+                        <option value="prev_high">High of Prev Candle + 2¢</option>
+                        <option value="atr">ATR-Based (1.5x)</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <span class="input-label">Trailing Logic (after entry)</span>
+                    <select id="trailType">
+                        <option value="none">None (Manual)</option>
+                        <option value="be_1r">Move to BE after +1R</option>
+                        <option value="trail_candle">Trail Candle Low (2¢)</option>
+                        <option value="trail_ema">Trail Below 9 EMA</option>
+                        <option value="trail_atr">Trail ATR (1x)</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <span class="input-label">Auto Partial at +25%</span>
+                    <select id="partialType">
+                        <option value="none">Disabled</option>
+                        <option value="25">Close 25% at +25%</option>
+                        <option value="50">Close 50% at +50%</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- PANEL 3: Execute -->
+            <div class="panel" style="flex: 0.7;">
+                <div class="panel-title">Execute Order</div>
+                <div class="input-row" style="margin-bottom: 8px;">
+                    <button class="btn btn-green" onclick="placeOrder('BUY')">
+                        BUY<br><span style="font-size:9px;font-weight:400;">LONG</span>
+                    </button>
+                    <button class="btn btn-red" onclick="placeOrder('SELL')">
+                        SELL<br><span style="font-size:9px;font-weight:400;">SHORT</span>
+                    </button>
+                </div>
+                <div style="text-align: center; font-size: 9px; color: #787b86; padding: 6px; background: #1a1e26; border-radius: 4px;">
+                    Sends <b>OCO Bracket</b> to TradeStation<br>
+                    Entry + Stop Loss + Take Profit
+                </div>
+                <div style="margin-top: auto;">
+                    <button class="btn btn-gray" style="width: 100%; font-size: 10px;" onclick="toggleArm()">
+                        <span id="armBtnText">🔴 DISARM Auto-Entry</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- PANEL 4: Active Position -->
+            <div class="panel" style="flex: 1;">
+                <div class="panel-title">
+                    Active Position
+                </div>
+                <div id="positionArea">
+                    <div class="position-card" id="activePosition" style="display: none;">
+                        <div class="pos-header">
+                            <span class="pos-symbol">TSLA LONG</span>
+                            <span class="pos-pnl profit" id="posPnl">+$45.00</span>
+                        </div>
+                        <div class="pos-details">
+                            <span id="posQty">50</span> shares @ $<span id="posEntry">150.00</span> | 
+                            SL: $<span id="posSL">148.50</span>
+                        </div>
+                    </div>
+                    <div id="noPosition" style="text-align: center; color: #4a4e59; font-size: 11px; padding: 15px;">
+                        No active position
+                    </div>
+                </div>
+                <div class="input-row" style="margin-top: auto; gap: 4px;">
+                    <button class="btn btn-gray" style="flex:1; font-size: 9px; padding: 6px;" onclick="moveToBE()">BE</button>
+                    <button class="btn btn-gray" style="flex:1; font-size: 9px; padding: 6px;" onclick="trailNow()">Trail</button>
+                    <button class="btn btn-gray" style="flex:1; font-size: 9px; padding: 6px;" onclick="closePartial(25)">25%</button>
+                    <button class="btn btn-gray" style="flex:1; font-size: 9px; padding: 6px;" onclick="closePartial(50)">50%</button>
+                    <button class="btn btn-red" style="flex:1; font-size: 9px; padding: 6px;" onclick="flatten()">FLAT</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <script type="text/javascript">
+        // ===== STATE =====
+        let widget = null;
+        let currentSymbol = 'TSLA';
+        let currentPrice = 152.34;
+        let isArmed = true;
+        let ws = null;
+        
+        // Mock position (replace with real data)
+        let activePosition = null;
+
+        // ===== TRADINGVIEW WIDGET =====
+        function loadTicker(tvSymbol, el) {
+            // Update sidebar
+            document.querySelectorAll('.ticker-btn').forEach(b => b.classList.remove('active'));
+            if(el) el.classList.add('active');
+            
+            // Extract simple symbol
+            currentSymbol = tvSymbol.split(':').pop().replace('1!', '');
+            document.getElementById('activeSymbol').innerText = currentSymbol;
+
+            // Reload widget
+            document.getElementById('tv_chart_container').innerHTML = "";
+            
+            widget = new TradingView.widget({
+                "width": "100%",
+                "height": "100%",
+                "symbol": tvSymbol,
+                "interval": "5",
+                "timezone": "America/New_York",
+                "theme": "dark",
+                "style": "1",
+                "locale": "en",
+                "toolbar_bg": "#151a21",
+                "enable_publishing": false,
+                "hide_side_toolbar": false,
+                "allow_symbol_change": true,
+                "container_id": "tv_chart_container",
+                "studies": [
+                    "MAExp@tv-basicstudies" // 9 EMA for trailing
+                ]
+            });
+            
+            // Connect to backend for this symbol
+            connectWebSocket(currentSymbol);
+        }
+
+        // ===== WEBSOCKET CONNECTION =====
+        function connectWebSocket(symbol) {
+            if (ws) ws.close();
+            
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            
+            try {
+                ws = new WebSocket(`ws://${window.location.host}/api/v1/market-data/ws/${symbol}`);
+                
+                ws.onopen = () => {
+                    statusDot.className = 'status-dot online';
+                    statusText.innerText = 'Live';
+                };
+                
+                ws.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    updateLivePrice(data);
+                };
+                
+                ws.onclose = () => {
+                    statusDot.className = 'status-dot offline';
+                    statusText.innerText = 'Offline';
+                };
+            } catch (e) {
+                console.log('WebSocket not available, using mock data');
+                statusText.innerText = 'Mock';
+            }
+        }
+
+        function updateLivePrice(data) {
+            currentPrice = data.price;
+            const priceEl = document.getElementById('livePrice');
+            priceEl.innerText = `$${data.price.toFixed(2)}`;
+            
+            // Update sidebar mini-price
+            const miniPrice = document.getElementById(`price-${currentSymbol}`);
+            if (miniPrice) miniPrice.innerText = data.price.toFixed(2);
+            
+            // Recalculate position size with new price
+            calculateSize();
+            
+            // Update position P&L if exists
+            if (activePosition) {
+                updatePositionPnL();
+            }
+        }
+
+        // ===== POSITION SIZING =====
+        function calculateSize() {
+            const risk = parseFloat(document.getElementById('riskAmt').value) || 0;
+            const stop = parseFloat(document.getElementById('stopPrice').value) || 0;
+            const tp = parseFloat(document.getElementById('tpPrice').value) || 0;
+            
+            const calcQty = document.getElementById('calcQty');
+            const totalRisk = document.getElementById('totalRisk');
+            const rrRatio = document.getElementById('rrRatio');
+            
+            if (stop <= 0 || stop >= currentPrice) {
+                calcQty.innerText = "Invalid Stop";
+                calcQty.style.color = "#f23645";
+                totalRisk.innerText = "$0.00";
+                rrRatio.innerText = "--";
+                return;
+            }
+
+            const riskPerShare = currentPrice - stop;
+            const shares = Math.floor(risk / riskPerShare);
+            const actualRisk = shares * riskPerShare;
+            
+            calcQty.innerText = `${shares} Shares`;
+            calcQty.style.color = shares > 0 ? "#2962ff" : "#f23645";
+            totalRisk.innerText = `$${actualRisk.toFixed(2)}`;
+            
+            // R:R Ratio
+            if (tp > currentPrice) {
+                const reward = tp - currentPrice;
+                const rr = (reward / riskPerShare).toFixed(1);
+                rrRatio.innerText = `1:${rr}`;
+                rrRatio.className = parseFloat(rr) >= 2 ? 'value rr-good' : 'value rr-bad';
+            } else {
+                rrRatio.innerText = "--";
+                rrRatio.className = 'value';
+            }
+        }
+
+        // ===== ORDER ACTIONS =====
+        async function placeOrder(side) {
+            const risk = parseFloat(document.getElementById('riskAmt').value);
+            const stop = parseFloat(document.getElementById('stopPrice').value);
+            const tp = parseFloat(document.getElementById('tpPrice').value) || null;
+            
+            const payload = {
+                symbol: currentSymbol,
+                side: side,
+                entry_type: "MARKET",
+                risk_amount: risk,
+                stop_loss: stop,
+                take_profit: tp,
+                trailing_mode: document.getElementById('trailType').value
+            };
+            
+            console.log('📤 Placing order:', payload);
+            
+            try {
+                const res = await fetch('/api/v1/orders/bracket', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await res.json();
+                console.log('📥 Order result:', result);
+                
+                if (result.status !== 'REJECTED') {
+                    // Show position
+                    showPosition(side, result.quantity, currentPrice, stop, tp);
+                }
+                
+                alert(result.message);
+            } catch (e) {
+                console.error('Order failed:', e);
+                alert('Order failed - check console');
+            }
+        }
+
+        function showPosition(side, qty, entry, sl, tp) {
+            activePosition = { side, qty, entry, sl, tp };
+            
+            document.getElementById('noPosition').style.display = 'none';
+            const card = document.getElementById('activePosition');
+            card.style.display = 'block';
+            card.className = side === 'BUY' ? 'position-card' : 'position-card short';
+            
+            document.querySelector('.pos-symbol').innerText = `${currentSymbol} ${side === 'BUY' ? 'LONG' : 'SHORT'}`;
+            document.getElementById('posQty').innerText = qty;
+            document.getElementById('posEntry').innerText = entry.toFixed(2);
+            document.getElementById('posSL').innerText = sl.toFixed(2);
+            
+            updatePositionPnL();
+        }
+
+        function updatePositionPnL() {
+            if (!activePosition) return;
+            
+            const pnl = activePosition.side === 'BUY' 
+                ? (currentPrice - activePosition.entry) * activePosition.qty
+                : (activePosition.entry - currentPrice) * activePosition.qty;
+            
+            const pnlEl = document.getElementById('posPnl');
+            pnlEl.innerText = `${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}`;
+            pnlEl.className = pnl >= 0 ? 'pos-pnl profit' : 'pos-pnl loss';
+        }
+
+        // ===== POSITION MANAGEMENT =====
+        async function moveToBE() {
+            if (!activePosition) return alert('No active position');
+            console.log('Moving stop to breakeven');
+            // TODO: API call
+            alert('Stop moved to breakeven: $' + activePosition.entry.toFixed(2));
+        }
+
+        async function trailNow() {
+            if (!activePosition) return alert('No active position');
+            console.log('Activating trail');
+            // TODO: API call
+            alert('Trailing stop activated');
+        }
+
+        async function closePartial(percent) {
+            if (!activePosition) return alert('No active position');
+            const closeQty = Math.floor(activePosition.qty * (percent / 100));
+            console.log(`Closing ${percent}% = ${closeQty} shares`);
+            // TODO: API call
+            alert(`Closing ${closeQty} shares (${percent}%)`);
+        }
+
+        async function flatten() {
+            if (!activePosition) return alert('No active position');
+            console.log('Flattening position');
+            // TODO: API call
+            activePosition = null;
+            document.getElementById('activePosition').style.display = 'none';
+            document.getElementById('noPosition').style.display = 'block';
+            alert('Position flattened');
+        }
+
+        // ===== ARM/DISARM =====
+        function toggleArm() {
+            isArmed = !isArmed;
+            const armStatus = document.getElementById('armStatus');
+            const armBtn = document.getElementById('armBtnText');
+            
+            if (isArmed) {
+                armStatus.innerText = '⚡ ARMED';
+                armStatus.className = 'strat-tag armed-tag';
+                armBtn.innerText = '🔴 DISARM Auto-Entry';
+            } else {
+                armStatus.innerText = '⏸️ STAGED';
+                armStatus.className = 'strat-tag';
+                armBtn.innerText = '🟢 ARM Auto-Entry';
+            }
+        }
+
+        // ===== KILL SWITCH =====
+        async function killSwitch() {
+            if (!confirm('⚠️ KILL SWITCH: Cancel all orders and flatten all positions?')) return;
+            
+            console.log('🛑 KILL SWITCH ACTIVATED');
+            // TODO: API call to /api/v1/orders/panic
+            alert('🛑 All orders cancelled, all positions flattened');
+        }
+
+        // ===== ADD TICKER =====
+        function addTicker() {
+            const symbol = prompt('Enter ticker symbol (e.g., MSFT, AMD, SPY):');
+            if (!symbol) return;
+            
+            // Would add to sidebar dynamically
+            alert(`Adding ${symbol.toUpperCase()} to watchlist (not yet implemented)`);
+        }
+
+        // ===== INIT =====
+        loadTicker('NASDAQ:TSLA', document.querySelector('.ticker-btn.active'));
+        
+        // Mock price updates (remove when WebSocket works)
+        setInterval(() => {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                currentPrice += (Math.random() - 0.5) * 0.5;
+                document.getElementById('livePrice').innerText = `$${currentPrice.toFixed(2)}`;
+                calculateSize();
+                if (activePosition) updatePositionPnL();
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

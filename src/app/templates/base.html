@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Project Pulse{% endblock %}</title>
+    
+    <!-- Global Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', path='css/pro_terminal.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    {% block content %}{% endblock %}
+    
+    <!-- Vendor Scripts -->
+    <script src="https://s3.tradingview.com/tv.js"></script>
+    
+    <!-- App Scripts -->
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

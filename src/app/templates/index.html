@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Project Pulse (Live Backend)</title>
+  <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+  <style>
+    /* ... (Styles kept exactly as they were) ... */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0e27; color: #e0e0e0; overflow: hidden; }
+    .header { background: linear-gradient(135deg, #1a1f3a 0%, #0f1729 100%); border-bottom: 1px solid #2a2f4a; padding: 15px 30px; display:flex; justify-content:space-between; align-items:center; }
+    .symbol-name { font-size: 24px; font-weight: 800; }
+    .symbol-price { font-size: 28px; font-weight: 900; color: #26a69a; }
+    .header-right { display:flex; gap:12px; align-items:center; }
+    .main-container { display:grid; grid-template-columns: 1fr 380px; height: calc(100vh - 81px); gap:1px; background:#1a1f3a; }
+    .chart-panel { background:#0f1729; display:flex; flex-direction:column; }
+    .chart-container { flex:1; position:relative; padding:20px; }
+    .chart-wrapper { width:100%; height:100%; position:relative; }
+    .side-panel { background:#0f1729; display:flex; flex-direction:column; padding: 20px; gap: 20px; border-left: 1px solid #2a2f4a; }
+    
+    /* Status Badge */
+    .status-badge { padding: 4px 12px; border-radius: 99px; font-weight: 900; font-size: 12px; text-transform: uppercase; }
+    .status-connected { background: rgba(38,166,154,0.2); color: #26a69a; border: 1px solid rgba(38,166,154,0.4); }
+    .status-disconnected { background: rgba(239,83,80,0.2); color: #ef5350; border: 1px solid rgba(239,83,80,0.4); }
+    .status-loading { background: rgba(255, 193, 7, 0.2); color: #ffc107; border: 1px solid rgba(255, 193, 7, 0.4); }
+
+    /* UT Overlay */
+    .overlay-box { background: rgba(26,31,58,0.9); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; font-size: 13px; }
+    .overlay-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+    .val { font-weight: 900; }
+    .buy { color: #26a69a; }
+    .sell { color: #ef5350; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <div class="symbol-display">
+        <div class="symbol-name">TSLA</div>
+        <div style="display:flex; gap:15px; align-items:baseline;">
+          <div class="symbol-price" id="symPrice">---</div>
+          <div class="status-badge status-disconnected" id="connStatus">Offline</div>
+        </div>
+      </div>
+    </div>
+    <div class="header-right">
+       <button onclick="reconnect()">Reconnect</button>
+    </div>
+  </div>
+
+  <div class="main-container">
+    <div class="chart-panel">
+      <div class="chart-container">
+        <div class="chart-wrapper" id="chartWrapper"></div>
+      </div>
+    </div>
+
+    <div class="side-panel">
+      <h3>Strategy Monitor (Backend)</h3>
+      
+      <div class="overlay-box">
+        <div class="overlay-row">
+            <span>Signal State:</span>
+            <span class="val" id="utAction">HOLD</span>
+        </div>
+        <div class="overlay-row">
+            <span>Trailing Stop:</span>
+            <span class="val" id="utStop">---</span>
+        </div>
+        <div class="overlay-row">
+            <span>Position:</span>
+            <span class="val" id="utPos">FLAT</span>
+        </div>
+      </div>
+
+      <div style="font-size: 12px; color: #667eea; margin-top: 10px;">
+        ℹ️ <b>Note:</b> Logic is running on Python server. Visuals are just a reflection of the backend state.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- 1. LIGHTWEIGHT CHARTS SETUP ---
+    const chart = LightweightCharts.createChart(document.getElementById('chartWrapper'), {
+      layout: { background: { color: '#0f1729' }, textColor: '#8892b0' },
+      grid: { vertLines: { color: '#1a1f3a' }, horzLines: { color: '#1a1f3a' } },
+      timeScale: { timeVisible: true, secondsVisible: true },
+      crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+    });
+
+    const candleSeries = chart.addCandlestickSeries({
+        upColor: '#26a69a', downColor: '#ef5350', borderVisible: false, wickUpColor: '#26a69a', wickDownColor: '#ef5350'
+    });
+
+    const utLineSeries = chart.addLineSeries({
+        color: '#f5d442', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, title: 'Server Stop'
+    });
+
+    // --- 2. LOGIC CONNECTION ---
+    let ws;
+    const symbol = "TSLA";
+    
+    async function connect() {
+        const statusEl = document.getElementById('connStatus');
+        
+        // --- STEP A: Fetch History (The "Memory") ---
+        statusEl.innerText = "Loading History...";
+        statusEl.className = "status-badge status-loading";
+        
+        try {
+            // Call our new REST endpoint
+            const response = await fetch(`/api/v1/market-data/history/${symbol}`);
+            const history = await response.json();
+            
+            if (history.length > 0) {
+                // Transform backend data format to Chart format
+                const chartData = history.map(bar => ({
+                    time: bar.timestamp,
+                    open: bar.open,
+                    high: bar.high,
+                    low: bar.low,
+                    close: bar.close
+                }));
+                
+                // Bulk load the chart (INSTANT FILL)
+                candleSeries.setData(chartData);
+                chart.timeScale().fitContent();
+                console.log(`Loaded ${history.length} historical bars.`);
+            }
+        } catch (e) {
+            console.error("History Load Failed:", e);
+        }
+
+        // --- STEP B: Connect WebSocket (The "Live Stream") ---
+        // We use window.location.host to work dynamically on localhost or server
+        ws = new WebSocket(`ws://${window.location.host}/api/v1/market-data/ws/${symbol}`);
+
+        ws.onopen = () => {
+            statusEl.innerText = "Connected (Backend)";
+            statusEl.className = "status-badge status-connected";
+        };
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            // 1. Update Chart Candle (Tick Update)
+            candleSeries.update({
+                time: data.timestamp,
+                open: data.open, 
+                high: data.high,
+                low: data.low,
+                close: data.price
+            });
+
+            // 2. Update Header Price
+            document.getElementById('symPrice').innerText = `$${data.price.toFixed(2)}`;
+
+            // 3. Update UT Strategy UI
+            const actionEl = document.getElementById('utAction');
+            actionEl.innerText = data.ut_action;
+            actionEl.className = `val ${data.ut_action === 'BUY' ? 'buy' : (data.ut_action === 'SELL' ? 'sell' : '')}`;
+            
+            document.getElementById('utStop').innerText = `$${data.ut_stop.toFixed(2)}`;
+            document.getElementById('utPos').innerText = data.ut_position;
+
+            // 4. Update Yellow Line
+            if (data.ut_stop > 0) {
+                utLineSeries.update({
+                    time: data.timestamp,
+                    value: data.ut_stop
+                });
+            }
+            
+            // 5. Draw Markers on Signals
+            if (data.ut_action === 'BUY') {
+                 candleSeries.setMarkers([{ time: data.timestamp, position: 'belowBar', color: '#26a69a', shape: 'arrowUp', text: 'BUY' }]);
+            } else if (data.ut_action === 'SELL') {
+                 candleSeries.setMarkers([{ time: data.timestamp, position: 'aboveBar', color: '#ef5350', shape: 'arrowDown', text: 'SELL' }]);
+            }
+        };
+
+        ws.onclose = () => {
+            statusEl.innerText = "Disconnected";
+            statusEl.className = "status-badge status-disconnected";
+        };
+    }
+
+    function reconnect() {
+        if(ws) ws.close();
+        connect();
+    }
+
+    // Auto-resize Logic
+    new ResizeObserver(entries => {
+        if (entries.length === 0 || entries[0].target !== document.getElementById('chartWrapper')) { return; }
+        const newRect = entries[0].contentRect;
+        chart.applyOptions({ height: newRect.height, width: newRect.width });
+    }).observe(document.getElementById('chartWrapper'));
+
+    // Start the System
+    connect();
+
+  </script>
+</body>
+</html>

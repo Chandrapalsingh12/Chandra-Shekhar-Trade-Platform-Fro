@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro Terminal - Project Pulse</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/terminal.css') }}?v=2026020406">
+</head>
+
+<body>
+    <div id="app">
+        <script src="{{ url_for('static', path='js/terminal.js') }}?v=2026020402"></script>
+
+        <!-- SCROLLING SIGNAL BAR (marquee) -->
+        <header class="signal-bar">
+            <div class="signal-label">
+                <span class="signal-icon">📡</span>
+                <span>SIGNALS</span>
+            </div>
+            <div class="signal-marquee">
+                <div class="signal-track" id="signalTrack">
+                    <!-- Signals will be inserted here by JS -->
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN CONTENT ROW -->
+        <div class="content-row">
+
+            <!-- LEFT SIDEBAR (WATCHLIST) -->
+            <aside class="sidebar left-sidebar" id="leftSidebar">
+                <div class="sidebar-header">
+                    <span class="sidebar-title">WATCHLIST</span>
+                    <div class="sidebar-controls">
+                        <button class="pin-btn pinned" id="pinLeft" onclick="togglePin('left')"
+                            title="Pin sidebar">📌</button>
+                        <button class="collapse-btn" id="collapseLeft" onclick="toggleSidebar('left')"
+                            title="Collapse">◀</button>
+                    </div>
+                </div>
+
+                <div class="watchlist" id="watchlist">
+                    <!-- TSLA -->
+                    <div class="ticker-card active" data-symbol="TSLA" data-tv="NASDAQ:TSLA"
+                        onclick="selectTicker(this)">
+                        <div class="ticker-header">
+                            <span class="notif-dot" id="notif-TSLA"></span>
+                            <span class="ticker-symbol">TSLA</span>
+                            <span class="ticker-price" id="price-TSLA">--</span>
+                        </div>
+                        <div class="arrows-row">
+                            <span class="arrow-box" data-tf="1" onclick="onArrowClick(event,'TSLA','1')"><span
+                                    class="arrow" id="arrow-TSLA-1">-</span><span class="tf-label">1</span></span>
+                            <span class="arrow-box" data-tf="5" onclick="onArrowClick(event,'TSLA','5')"><span
+                                    class="arrow" id="arrow-TSLA-5">-</span><span class="tf-label">5</span></span>
+                            <span class="arrow-box" data-tf="15" onclick="onArrowClick(event,'TSLA','15')"><span
+                                    class="arrow" id="arrow-TSLA-15">-</span><span class="tf-label">15</span></span>
+                            <span class="arrow-box" data-tf="4h" onclick="onArrowClick(event,'TSLA','4h')"><span
+                                    class="arrow" id="arrow-TSLA-4h">-</span><span class="tf-label">4h</span></span>
+                            <span class="arrow-box" data-tf="8h" onclick="onArrowClick(event,'TSLA','8h')"><span
+                                    class="arrow" id="arrow-TSLA-8h">-</span><span class="tf-label">8h</span></span>
+                            <span class="arrow-box" data-tf="D" onclick="onArrowClick(event,'TSLA','D')"><span
+                                    class="arrow" id="arrow-TSLA-D">-</span><span class="tf-label">D</span></span>
+                            <span class="arrow-box" data-tf="W" onclick="onArrowClick(event,'TSLA','W')"><span
+                                    class="arrow" id="arrow-TSLA-W">-</span><span class="tf-label">W</span></span>
+                        </div>
+                    </div>
+
+                    <!-- NVDA -->
+                    <div class="ticker-card" data-symbol="NVDA" data-tv="NASDAQ:NVDA" onclick="selectTicker(this)">
+                        <div class="ticker-header">
+                            <span class="notif-dot" id="notif-NVDA"></span>
+                            <span class="ticker-symbol">NVDA</span>
+                            <span class="ticker-price" id="price-NVDA">--</span>
+                        </div>
+                        <div class="arrows-row">
+                            <span class="arrow-box" data-tf="1" onclick="onArrowClick(event,'NVDA','1')"><span
+                                    class="arrow" id="arrow-NVDA-1">-</span><span class="tf-label">1</span></span>
+                            <span class="arrow-box" data-tf="5" onclick="onArrowClick(event,'NVDA','5')"><span
+                                    class="arrow" id="arrow-NVDA-5">-</span><span class="tf-label">5</span></span>
+                            <span class="arrow-box" data-tf="15" onclick="onArrowClick(event,'NVDA','15')"><span
+                                    class="arrow" id="arrow-NVDA-15">-</span><span class="tf-label">15</span></span>
+                            <span class="arrow-box" data-tf="4h" onclick="onArrowClick(event,'NVDA','4h')"><span
+                                    class="arrow" id="arrow-NVDA-4h">-</span><span class="tf-label">4h</span></span>
+                            <span class="arrow-box" data-tf="8h" onclick="onArrowClick(event,'NVDA','8h')"><span
+                                    class="arrow" id="arrow-NVDA-8h">-</span><span class="tf-label">8h</span></span>
+                            <span class="arrow-box" data-tf="D" onclick="onArrowClick(event,'NVDA','D')"><span
+                                    class="arrow" id="arrow-NVDA-D">-</span><span class="tf-label">D</span></span>
+                            <span class="arrow-box" data-tf="W" onclick="onArrowClick(event,'NVDA','W')"><span
+                                    class="arrow" id="arrow-NVDA-W">-</span><span class="tf-label">W</span></span>
+                        </div>
+                    </div>
+
+                    <!-- AAPL -->
+                    <div class="ticker-card" data-symbol="AAPL" data-tv="NASDAQ:AAPL" onclick="selectTicker(this)">
+                        <div class="ticker-header">
+                            <span class="notif-dot" id="notif-AAPL"></span>
+                            <span class="ticker-symbol">AAPL</span>
+                            <span class="ticker-price" id="price-AAPL">--</span>
+                        </div>
+                        <div class="arrows-row">
+                            <span class="arrow-box" data-tf="1" onclick="onArrowClick(event,'AAPL','1')"><span
+                                    class="arrow" id="arrow-AAPL-1">-</span><span class="tf-label">1</span></span>
+                            <span class="arrow-box" data-tf="5" onclick="onArrowClick(event,'AAPL','5')"><span
+                                    class="arrow" id="arrow-AAPL-5">-</span><span class="tf-label">5</span></span>
+                            <span class="arrow-box" data-tf="15" onclick="onArrowClick(event,'AAPL','15')"><span
+                                    class="arrow" id="arrow-AAPL-15">-</span><span class="tf-label">15</span></span>
+                            <span class="arrow-box" data-tf="4h" onclick="onArrowClick(event,'AAPL','4h')"><span
+                                    class="arrow" id="arrow-AAPL-4h">-</span><span class="tf-label">4h</span></span>
+                            <span class="arrow-box" data-tf="8h" onclick="onArrowClick(event,'AAPL','8h')"><span
+                                    class="arrow" id="arrow-AAPL-8h">-</span><span class="tf-label">8h</span></span>
+                            <span class="arrow-box" data-tf="D" onclick="onArrowClick(event,'AAPL','D')"><span
+                                    class="arrow" id="arrow-AAPL-D">-</span><span class="tf-label">D</span></span>
+                            <span class="arrow-box" data-tf="W" onclick="onArrowClick(event,'AAPL','W')"><span
+                                    class="arrow" id="arrow-AAPL-W">-</span><span class="tf-label">W</span></span>
+                        </div>
+                    </div>
+
+                    <!-- SPY -->
+                    <div class="ticker-card" data-symbol="SPY" data-tv="AMEX:SPY" onclick="selectTicker(this)">
+                        <div class="ticker-header">
+                            <span class="notif-dot" id="notif-SPY"></span>
+                            <span class="ticker-symbol">SPY</span>
+                            <span class="ticker-price" id="price-SPY">--</span>
+                        </div>
+                        <div class="arrows-row">
+                            <span class="arrow-box" data-tf="1" onclick="onArrowClick(event,'SPY','1')"><span
+                                    class="arrow" id="arrow-SPY-1">-</span><span class="tf-label">1</span></span>
+                            <span class="arrow-box" data-tf="5" onclick="onArrowClick(event,'SPY','5')"><span
+                                    class="arrow" id="arrow-SPY-5">-</span><span class="tf-label">5</span></span>
+                            <span class="arrow-box" data-tf="15" onclick="onArrowClick(event,'SPY','15')"><span
+                                    class="arrow" id="arrow-SPY-15">-</span><span class="tf-label">15</span></span>
+                            <span class="arrow-box" data-tf="4h" onclick="onArrowClick(event,'SPY','4h')"><span
+                                    class="arrow" id="arrow-SPY-4h">-</span><span class="tf-label">4h</span></span>
+                            <span class="arrow-box" data-tf="8h" onclick="onArrowClick(event,'SPY','8h')"><span
+                                    class="arrow" id="arrow-SPY-8h">-</span><span class="tf-label">8h</span></span>
+                            <span class="arrow-box" data-tf="D" onclick="onArrowClick(event,'SPY','D')"><span
+                                    class="arrow" id="arrow-SPY-D">-</span><span class="tf-label">D</span></span>
+                            <span class="arrow-box" data-tf="W" onclick="onArrowClick(event,'SPY','W')"><span
+                                    class="arrow" id="arrow-SPY-W">-</span><span class="tf-label">W</span></span>
+                        </div>
+                    </div>
+
+                    <!-- Add Ticker -->
+                    <div class="ticker-card add-btn" onclick="addTicker()">
+                        <span class="plus">+</span>
+                    </div>
+                </div>
+
+                <div class="account-box">
+                    <div class="label">PAPER</div>
+                    <div class="balance">$10,000.00</div>
+                </div>
+            </aside>
+
+            <!-- COLLAPSED LEFT INDICATOR -->
+            <div class="collapsed-indicator left hidden" id="leftCollapsed" onclick="toggleSidebar('left')">
+                <span>▶</span>
+                <span class="collapsed-label">W</span>
+            </div>
+
+            <!-- CHART AREA -->
+            <main class="chart-area">
+                <div class="chart-header">
+                    <span class="active-symbol" id="activeSymbol">TSLA</span>
+                    <span class="live-price" id="livePrice">$--</span>
+                </div>
+
+                <div class="charts-container" id="chartsContainer">
+                    <!-- Chart 1 -->
+                    <div class="chart-pane" id="pane1" data-chart-index="0">
+                        <div class="chart-selector-badge" onclick="selectChart(0)">1</div>
+                        <button class="chart-btn chart-btn-maximize" onclick="toggleMaximize(0)"
+                            title="Maximize">⛶</button>
+                        <div class="chart-widget" id="chart1"></div>
+                    </div>
+
+                    <!-- Resize Handle 1 -->
+                    <div class="resize-handle" id="resize1"></div>
+
+                    <!-- Chart 2 -->
+                    <div class="chart-pane" id="pane2" data-chart-index="1">
+                        <div class="chart-selector-badge" onclick="selectChart(1)">2</div>
+                        <button class="chart-btn chart-btn-maximize" onclick="toggleMaximize(1)"
+                            title="Maximize">⛶</button>
+                        <div class="chart-widget" id="chart2"></div>
+                    </div>
+
+                    <!-- Resize Handle 2 -->
+                    <div class="resize-handle" id="resize2"></div>
+
+                    <!-- Chart 3 -->
+                    <div class="chart-pane" id="pane3" data-chart-index="2">
+                        <div class="chart-selector-badge" onclick="selectChart(2)">3</div>
+                        <button class="chart-btn chart-btn-maximize" onclick="toggleMaximize(2)"
+                            title="Maximize">⛶</button>
+                        <div class="chart-widget" id="chart3"></div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- COLLAPSED RIGHT INDICATOR -->
+            <div class="collapsed-indicator right hidden" id="rightCollapsed" onclick="toggleSidebar('right')">
+                <span>◀</span>
+                <span class="collapsed-label">E</span>
+            </div>
+
+            <!-- RIGHT SIDEBAR (EXECUTION) -->
+            <aside class="sidebar right-sidebar" id="rightSidebar">
+                <div class="sidebar-header">
+                    <span class="sidebar-title">EXECUTE</span>
+                    <div class="sidebar-controls">
+                        <button class="pin-btn" id="pinRight" onclick="togglePin('right')"
+                            title="Pin sidebar">📌</button>
+                        <button class="collapse-btn" id="collapseRight" onclick="toggleSidebar('right')"
+                            title="Collapse">▶</button>
+                    </div>
+                </div>
+
+                <div class="exec-content">
+                    <div class="order-toggle">
+                        <button class="btn-toggle active" id="btnMkt" onclick="setOrderType('MKT')">MKT</button>
+                        <button class="btn-toggle" id="btnLmt" onclick="setOrderType('LMT')">LMT</button>
+                    </div>
+
+                    <div class="form-row hidden" id="limitRow">
+                        <label>Limit Price</label>
+                        <input type="number" id="limitPrice" placeholder="0.00" step="0.01">
+                    </div>
+
+                    <div class="size-box">
+                        <div class="form-row">
+                            <label>Risk ($)</label>
+                            <input type="number" id="riskAmt" value="10" oninput="calcSize()">
+                        </div>
+                        <div class="form-row">
+                            <label>Stop Loss</label>
+                            <input type="number" id="stopLoss" placeholder="0.00" step="0.01" oninput="calcSize()">
+                        </div>
+                        <div class="size-result">
+                            <span id="calcQty">0 Shares</span>
+                        </div>
+                    </div>
+
+                    <div class="action-btns">
+                        <button class="btn-buy" id="btnBuy" onclick="placeOrder('BUY')" disabled>BUY</button>
+                        <button class="btn-sell" id="btnSell" onclick="placeOrder('SELL')" disabled>SELL</button>
+                    </div>
+
+                    <button class="btn-arm" id="btnArm" onclick="toggleArm()">🟢 ARM</button>
+                    <button class="btn-kill" onclick="killSwitch()">🛑 KILL</button>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toasts"></div>
+
+    <!-- TradingView -->
+    <script src="https://s3.tradingview.com/tv.js"></script>
+
+    <!-- App Script -->
+    <script src="{{ url_for('static', path='js/terminal.js') }}?v=2026020404"></script>
+</body>
+
+</html>
