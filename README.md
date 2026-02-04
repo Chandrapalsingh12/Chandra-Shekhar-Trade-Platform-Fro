@@ -260,19 +260,6 @@ pytest --cov=src tests/
 - **JavaScript**: ES6+, single quotes
 - **CSS**: BEM-like naming, CSS variables
 
----
 
-## 🚢 Deployment
 
-```bash
-# Production build
-uvicorn src.app.main:app --host 0.0.0.0 --port 8000 --workers 4
-```
 
-For Docker deployment, see `docker-compose.yml` (if available).
-
----
-
-## 📞 Support
-
-For questions or issues, contact the development team.
