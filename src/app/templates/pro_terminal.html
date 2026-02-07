@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pro Terminal - Project Pulse</title>
-    <link rel="stylesheet" href="{{ url_for('static', path='css/terminal.css') }}?v=2026020406">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/terminal.css') }}?v=2026020419">
 </head>
 
 <body>
@@ -149,8 +149,11 @@
                 </div>
 
                 <div class="account-box">
-                    <div class="label">PAPER</div>
-                    <div class="balance">$10,000.00</div>
+                    <div class="account-header">
+                        <div class="label">PAPER</div>
+                        <button class="reset-btn" onclick="resetAccount()" title="Reset Account">🔄</button>
+                    </div>
+                    <div class="balance" id="accountBalance">$10,000.00</div>
                 </div>
             </aside>
 
@@ -173,7 +176,43 @@
                         <div class="chart-selector-badge" onclick="selectChart(0)">1</div>
                         <button class="chart-btn chart-btn-maximize" onclick="toggleMaximize(0)"
                             title="Maximize">⛶</button>
+
+                        <!-- Interactive Overlays (HIDDEN - TradingView manages lines) -->
+                        <div class="drag-layer" id="dragLayer1" style="display: none;">
+                            <div class="drag-line tp" id="lineTP1">
+                                <div class="drag-handle tp" id="handleTP1"><span class="pill">TP</span><span
+                                        id="labelTP1">$0.00</span></div>
+                            </div>
+                            <div class="drag-line entry" id="lineEntry1">
+                                <div class="drag-handle entry" id="handleEntry1"><span class="pill">ENTRY</span><span
+                                        id="labelEntry1">$0.00</span></div>
+                            </div>
+                            <div class="drag-line stop" id="lineStop1">
+                                <div class="drag-handle stop" id="handleStop1"><span class="pill">SL</span><span
+                                        id="labelStop1">$0.00</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Position State Overlay -->
+                        <div class="position-overlay" id="positionOverlay">
+                            <div class="overlay-header">
+                                <span class="overlay-title">UTBot + Position State</span>
+                                <span class="overlay-badge badge-flat" id="ovPosBadge">FLAT</span>
+                            </div>
+                            <div class="overlay-row"><span class="overlay-label">Entry</span><span class="overlay-value"
+                                    id="ovEntry">—</span></div>
+                            <div class="overlay-row"><span class="overlay-label">Stop</span><span
+                                    class="overlay-value neg" id="ovStop">—</span></div>
+                            <div class="overlay-row"><span class="overlay-label">Target</span><span
+                                    class="overlay-value pos" id="ovTarget">—</span></div>
+                            <div class="overlay-row"><span class="overlay-label">Position</span><span
+                                    class="overlay-value" id="ovPos">—</span></div>
+                            <div class="overlay-row"><span class="overlay-label">Unrealized P&L</span><span
+                                    class="overlay-value" id="ovPnl">$0.00</span></div>
+                        </div>
+
                         <div class="chart-widget" id="chart1"></div>
+                        <div class="chart-mode-badge"></div>
                     </div>
 
                     <!-- Resize Handle 1 -->
@@ -184,7 +223,25 @@
                         <div class="chart-selector-badge" onclick="selectChart(1)">2</div>
                         <button class="chart-btn chart-btn-maximize" onclick="toggleMaximize(1)"
                             title="Maximize">⛶</button>
+
+                        <!-- Interactive Overlays (HIDDEN - TradingView manages lines) -->
+                        <div class="drag-layer" id="dragLayer2" style="display: none;">
+                            <div class="drag-line tp" id="lineTP2">
+                                <div class="drag-handle tp" id="handleTP2"><span class="pill">TP</span><span
+                                        id="labelTP2">$0.00</span></div>
+                            </div>
+                            <div class="drag-line entry" id="lineEntry2">
+                                <div class="drag-handle entry" id="handleEntry2"><span class="pill">ENTRY</span><span
+                                        id="labelEntry2">$0.00</span></div>
+                            </div>
+                            <div class="drag-line stop" id="lineStop2">
+                                <div class="drag-handle stop" id="handleStop2"><span class="pill">SL</span><span
+                                        id="labelStop2">$0.00</span></div>
+                            </div>
+                        </div>
+
                         <div class="chart-widget" id="chart2"></div>
+                        <div class="chart-mode-badge"></div>
                     </div>
 
                     <!-- Resize Handle 2 -->
@@ -195,7 +252,25 @@
                         <div class="chart-selector-badge" onclick="selectChart(2)">3</div>
                         <button class="chart-btn chart-btn-maximize" onclick="toggleMaximize(2)"
                             title="Maximize">⛶</button>
+
+                        <!-- Interactive Overlays (HIDDEN - TradingView manages lines) -->
+                        <div class="drag-layer" id="dragLayer3" style="display: none;">
+                            <div class="drag-line tp" id="lineTP3">
+                                <div class="drag-handle tp" id="handleTP3"><span class="pill">TP</span><span
+                                        id="labelTP3">$0.00</span></div>
+                            </div>
+                            <div class="drag-line entry" id="lineEntry3">
+                                <div class="drag-handle entry" id="handleEntry3"><span class="pill">ENTRY</span><span
+                                        id="labelEntry3">$0.00</span></div>
+                            </div>
+                            <div class="drag-line stop" id="lineStop3">
+                                <div class="drag-handle stop" id="handleStop3"><span class="pill">SL</span><span
+                                        id="labelStop3">$0.00</span></div>
+                            </div>
+                        </div>
+
                         <div class="chart-widget" id="chart3"></div>
+                        <div class="chart-mode-badge"></div>
                     </div>
                 </div>
             </main>
@@ -219,36 +294,85 @@
                 </div>
 
                 <div class="exec-content">
-                    <div class="order-toggle">
-                        <button class="btn-toggle active" id="btnMkt" onclick="setOrderType('MKT')">MKT</button>
-                        <button class="btn-toggle" id="btnLmt" onclick="setOrderType('LMT')">LMT</button>
+                    <!-- Position State Badge -->
+                    <div class="position-state">
+                        <span class="state-label">Position</span>
+                        <span class="state-badge badge-flat" id="posBadge">FLAT</span>
                     </div>
 
-                    <div class="form-row hidden" id="limitRow">
-                        <label>Limit Price</label>
-                        <input type="number" id="limitPrice" placeholder="0.00" step="0.01">
+                    <!-- Side -->
+                    <div class="order-group">
+                        <label class="order-label">Side <span class="hint">auto</span></label>
+                        <select class="order-select" id="side" onchange="calcSize()">
+                            <option value="BUY" selected>BUY (Long)</option>
+                            <option value="SELL">SELL (Short)</option>
+                        </select>
                     </div>
 
-                    <div class="size-box">
-                        <div class="form-row">
-                            <label>Risk ($)</label>
-                            <input type="number" id="riskAmt" value="10" oninput="calcSize()">
+                    <!-- Quantity -->
+                    <div class="order-group">
+                        <label class="order-label">Quantity</label>
+                        <input type="number" class="order-input" id="quantity" value="100" oninput="calcSize()">
+                    </div>
+
+                    <!-- Entry Price -->
+                    <div class="order-group">
+                        <label class="order-label">Entry Price <span class="hint">drag line</span></label>
+                        <input type="number" class="order-input" id="entryPrice" placeholder="0.00" step="0.01"
+                            oninput="calcSize()">
+                    </div>
+
+                    <!-- Stop Loss -->
+                    <div class="order-group">
+                        <label class="order-label">Stop Loss <span class="hint">drag</span></label>
+                        <input type="number" class="order-input" id="stopLoss" placeholder="0.00" step="0.01"
+                            oninput="calcSize()">
+                    </div>
+
+                    <!-- Take Profit -->
+                    <div class="order-group">
+                        <label class="order-label">Take Profit <span class="hint">drag</span></label>
+                        <input type="number" class="order-input" id="takeProfit" placeholder="0.00" step="0.01"
+                            oninput="calcSize()">
+                    </div>
+
+                    <!-- Risk Display Box -->
+                    <div class="risk-display">
+                        <div class="risk-row">
+                            <span class="risk-label">Risk/Share</span>
+                            <span class="risk-value neg" id="riskPerShare">$0.00</span>
                         </div>
-                        <div class="form-row">
-                            <label>Stop Loss</label>
-                            <input type="number" id="stopLoss" placeholder="0.00" step="0.01" oninput="calcSize()">
+                        <div class="risk-row">
+                            <span class="risk-label">Reward/Share</span>
+                            <span class="risk-value pos" id="rewardPerShare">$0.00</span>
                         </div>
-                        <div class="size-result">
-                            <span id="calcQty">0 Shares</span>
+                        <div class="risk-row">
+                            <span class="risk-label">R:R</span>
+                            <span class="risk-value" id="rrRatio">—</span>
+                        </div>
+                        <div class="risk-row">
+                            <span class="risk-label">Unrealized P&L</span>
+                            <span class="risk-value" id="pnlNow">$0.00</span>
                         </div>
                     </div>
 
+                    <!-- Execute Buttons -->
                     <div class="action-btns">
-                        <button class="btn-buy" id="btnBuy" onclick="placeOrder('BUY')" disabled>BUY</button>
-                        <button class="btn-sell" id="btnSell" onclick="placeOrder('SELL')" disabled>SELL</button>
+                        <button class="btn-buy" id="btnBuy" onclick="executeTrade('BUY')" disabled>BUY</button>
+                        <button class="btn-sell" id="btnSell" onclick="executeTrade('SELL')" disabled>SELL</button>
                     </div>
 
-                    <button class="btn-arm" id="btnArm" onclick="toggleArm()">🟢 ARM</button>
+                    <!-- Position Management -->
+                    <div class="position-btns">
+                        <button class="btn-close" id="btnClose" onclick="closePosition()">Close Position</button>
+                        <button class="btn-be" onclick="moveStopToBreakeven()">Move SL → BE</button>
+                    </div>
+
+                    <!-- STAGED / ARM / KILL -->
+                    <div class="arm-controls">
+                        <button class="btn-staged" id="btnStaged" onclick="toggleStaged()">⚪ STAGED</button>
+                        <button class="btn-arm" id="btnArm" onclick="toggleArm()" disabled>🟢 ARM</button>
+                    </div>
                     <button class="btn-kill" onclick="killSwitch()">🛑 KILL</button>
                 </div>
             </aside>
@@ -258,11 +382,14 @@
     <!-- Toast Container -->
     <div class="toast-container" id="toasts"></div>
 
-    <!-- TradingView -->
-    <script src="https://s3.tradingview.com/tv.js"></script>
+    <!-- TradingView Widget -->
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+
+    <!-- TradingView Lightweight Charts -->
+    <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
 
     <!-- App Script -->
-    <script src="{{ url_for('static', path='js/terminal.js') }}?v=2026020404"></script>
+    <script src="{{ url_for('static', path='js/terminal.js') }}?v=2026020415"></script>
 </body>
 
 </html>

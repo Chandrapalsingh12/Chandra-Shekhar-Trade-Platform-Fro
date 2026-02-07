@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Focus Chart - UTBot + Correct Short SL/TP + Ignore Flips In-Trade (Fixed5)</title>
+  <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0e27; color: #e0e0e0; overflow: hidden; }
+    .header { background: linear-gradient(135deg, #1a1f3a 0%, #0f1729 100%); border-bottom: 1px solid #2a2f4a; padding: 15px 30px; display:flex; justify-content:space-between; align-items:center; }
+    .symbol-name { font-size: 24px; font-weight: 800; }
+    .symbol-price { font-size: 28px; font-weight: 900; color: #26a69a; }
+    .symbol-change { font-size: 14px; color: #26a69a; }
+    .header-right { display:flex; gap:12px; align-items:center; }
+    .timeframe-selector { display:flex; gap:8px; background:#1a1f3a; padding:6px; border-radius:10px; border: 1px solid rgba(255,255,255,0.06); }
+    .tf-btn { padding: 6px 12px; border:none; background:transparent; color:#8892b0; border-radius:8px; cursor:pointer; font-weight:800; font-size:12px; transition: all 0.2s; }
+    .tf-btn.active { background:#667eea; color:white; }
+    .action-btn { padding: 10px 16px; border:none; border-radius:10px; font-weight:900; font-size:12px; cursor:pointer; transition: all 0.2s; border:1px solid rgba(255,255,255,0.06); }
+    .btn-buy { background: rgba(38,166,154,0.95); color:white; }
+    .btn-sell { background: rgba(239,83,80,0.95); color:white; }
+    .action-btn:hover { transform: translateY(-1px); }
+
+    .main-container { display:grid; grid-template-columns: 1fr 420px; height: calc(100vh - 81px); gap:1px; background:#1a1f3a; }
+    .chart-panel { background:#0f1729; display:flex; flex-direction:column; }
+    .chart-container { flex:1; position:relative; padding:20px; }
+    .chart-wrapper { width:100%; height:100%; position:relative; }
+
+    .side-panel { background:#0f1729; display:flex; flex-direction:column; overflow-y:auto; }
+    .panel-section { border-bottom:1px solid #1a1f3a; padding:20px; }
+    .section-title { font-size: 13px; font-weight: 900; margin-bottom: 12px; text-transform: uppercase; color:#8892b0; letter-spacing:0.5px; }
+
+    .form { display:flex; flex-direction:column; gap:12px; }
+    .form-row { display:flex; gap:10px; }
+    .form-group { flex:1; display:flex; flex-direction:column; gap:6px; }
+    .form-label { font-size: 10px; color:#8892b0; font-weight:900; text-transform:uppercase; display:flex; justify-content:space-between; }
+    .hint { font-size: 10px; color:#667eea; font-weight:900; }
+
+    .input, .select { padding:10px; background:#1a1f3a; border:1px solid #2a2f4a; border-radius:10px; color:#e0e0e0; font-size:14px; font-weight:800; outline:none; }
+    .input:focus, .select:focus { border-color:#667eea; background:#222842; }
+
+    .btn { padding:12px; border:none; border-radius:12px; cursor:pointer; font-weight:900; transition: transform .2s, box-shadow .2s; border:1px solid rgba(255,255,255,0.06); }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(0,0,0,0.35); }
+    .btn-green { background:#26a69a; color:white; }
+    .btn-red { background:#ef5350; color:white; }
+    .btn-primary { background:#667eea; color:white; }
+    .btn-ghost { background: rgba(255,255,255,0.06); color:#e0e0e0; }
+
+    .risk-display { background: rgba(102,126,234,0.12); padding:12px; border-radius:12px; border:1px solid rgba(102,126,234,0.45); }
+    .risk-row { display:flex; justify-content:space-between; margin-bottom:8px; font-size:13px; }
+    .risk-row:last-child { margin-bottom:0; }
+    .risk-label { color:#8892b0; font-weight:800; }
+    .risk-value { font-weight:900; }
+    .pos { color:#26a69a; }
+    .neg { color:#ef5350; }
+
+    .chart-overlay { position:absolute; top:30px; left:30px; background: rgba(26,31,58,0.92); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(10px); padding:14px; border-radius:12px; font-size:12px; z-index:10; min-width: 300px; }
+    .overlay-title { font-weight:900; color:#b8c5d6; margin-bottom:10px; display:flex; align-items:center; gap:10px; }
+    .overlay-badge { padding: 2px 8px; border-radius:999px; font-size:10px; font-weight:900; border:1px solid rgba(255,255,255,0.10); }
+    .badge-long { background: rgba(38,166,154,0.18); color:#26a69a; border-color: rgba(38,166,154,0.35); }
+    .badge-short { background: rgba(239,83,80,0.18); color:#ef5350; border-color: rgba(239,83,80,0.35); }
+    .badge-flat { background: rgba(255,255,255,0.08); color:#b8c5d6; }
+    .overlay-row { display:flex; justify-content:space-between; margin-bottom:6px; }
+    .overlay-label { color:#8892b0; font-weight:800; }
+    .overlay-value { font-weight:900; }
+
+    /* Draggable overlay lines */
+    .drag-layer { position:absolute; inset:0; z-index:9; pointer-events:none; }
+    .drag-line { position:absolute; left:8px; right:8px; height:0; border-top:2px solid transparent; pointer-events:none; }
+    .drag-line.entry { border-top-color:#667eea; }
+    .drag-line.stop { border-top-color:#ef5350; border-top-style:dashed; }
+    .drag-line.tp { border-top-color:#26a69a; border-top-style:dashed; }
+
+    .drag-handle {
+      position:absolute; right:12px; top:-10px; width: 178px; height:22px; border-radius:999px;
+      display:flex; align-items:center; justify-content:flex-end; gap:8px; padding:0 10px;
+      font-size:11px; font-weight:900; color:white;
+      background: rgba(0,0,0,0.28); border:1px solid rgba(255,255,255,0.16);
+      cursor: ns-resize; pointer-events:auto; user-select:none;
+    }
+    .pill { padding:2px 8px; border-radius:999px; font-size:10px; font-weight:900; background: rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.12); }
+
+    /* Profit/Risk rectangle */
+    .rr-rect { position:absolute; left:8px; right:8px; pointer-events:none; border-radius:12px; overflow:hidden; z-index:8; border:1px solid rgba(255,255,255,0.08); }
+    .rr-profit { position:absolute; left:0; right:0; background: rgba(38,166,154,0.14); }
+    .rr-risk { position:absolute; left:0; right:0; background: rgba(239,83,80,0.14); }
+    .rr-mid { position:absolute; left:0; right:0; height:0; border-top:1px solid rgba(255,255,255,0.14); }
+
+    /* Toast */
+    .toast { position:absolute; top:30px; right:30px; z-index:20; min-width:320px; max-width:520px; padding:12px 14px; border-radius:12px; border:1px solid rgba(255,255,255,0.10); background: rgba(26,31,58,0.92); backdrop-filter: blur(10px); box-shadow: 0 10px 30px rgba(0,0,0,0.35); transform: translateY(-8px); opacity:0; pointer-events:none; transition: opacity .18s ease, transform .18s ease; }
+    .toast.show { opacity:1; transform: translateY(0); }
+    .toast-title { font-weight:900; font-size:12px; margin-bottom:6px; }
+    .toast-body { font-size:12px; color:#b8c5d6; line-height:1.35; }
+
+    .small { font-size:12px; color:#8892b0; line-height:1.55; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <div class="symbol-display">
+        <div class="symbol-name">TSLA</div>
+        <div style="display:flex; gap:15px; align-items:baseline;">
+          <div class="symbol-price" id="symPrice">$447.82</div>
+          <div class="symbol-change" id="symChange">+$10.68 (+2.45%)</div>
+        </div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="timeframe-selector">
+        <button class="tf-btn" onclick="changeTimeframe('1', event)">1m</button>
+        <button class="tf-btn active" onclick="changeTimeframe('5', event)">5m</button>
+        <button class="tf-btn" onclick="changeTimeframe('15', event)">15m</button>
+        <button class="tf-btn" onclick="changeTimeframe('60', event)">1h</button>
+      </div>
+      <button class="action-btn btn-buy" onclick="executeTrade('BUY')">Execute Long</button>
+      <button class="action-btn btn-sell" onclick="executeTrade('SELL')">Execute Short</button>
+    </div>
+  </div>
+
+  <div class="main-container">
+    <div class="chart-panel">
+      <div class="chart-container">
+        <div class="chart-wrapper" id="chartWrapper">
+
+          <div class="toast" id="toast">
+            <div class="toast-title" id="toastTitle">Info</div>
+            <div class="toast-body" id="toastBody">—</div>
+          </div>
+
+          <!-- Risk/Reward Rectangle -->
+          <div class="rr-rect" id="rrRect">
+            <div class="rr-profit" id="rrProfit"></div>
+            <div class="rr-risk" id="rrRisk"></div>
+            <div class="rr-mid" id="rrMid"></div>
+          </div>
+
+          <!-- Drag lines -->
+          <div class="drag-layer" id="dragLayer">
+            <div class="drag-line tp" id="lineTP">
+              <div class="drag-handle tp" id="handleTP">
+                <span class="pill">TP</span><span id="labelTP">$0.00</span>
+              </div>
+            </div>
+            <div class="drag-line entry" id="lineEntry">
+              <div class="drag-handle entry" id="handleEntry">
+                <span class="pill">ENTRY</span><span id="labelEntry">$0.00</span>
+              </div>
+            </div>
+            <div class="drag-line stop" id="lineStop">
+              <div class="drag-handle stop" id="handleStop">
+                <span class="pill">SL</span><span id="labelStop">$0.00</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="chart-overlay">
+            <div class="overlay-title">
+              UTBot + Position State
+              <span class="overlay-badge badge-flat" id="posBadge">FLAT</span>
+            </div>
+
+            <div class="overlay-row">
+              <span class="overlay-label">Entry</span>
+              <span class="overlay-value" id="ovEntry">$0.00</span>
+            </div>
+            <div class="overlay-row">
+              <span class="overlay-label">Stop</span>
+              <span class="overlay-value" id="ovStop">$0.00</span>
+            </div>
+            <div class="overlay-row">
+              <span class="overlay-label">Target</span>
+              <span class="overlay-value" id="ovTP">$0.00</span>
+            </div>
+            <div class="overlay-row">
+              <span class="overlay-label">Position</span>
+              <span class="overlay-value" id="ovPos">—</span>
+            </div>
+            <div class="overlay-row">
+              <span class="overlay-label">Unrealized P&L</span>
+              <span class="overlay-value" id="ovPnl">$0.00</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="side-panel">
+      <div class="panel-section">
+        <div class="section-title">UT Bot Settings</div>
+        <div class="form">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">ATR Period</label>
+              <input type="number" class="input" id="utAtrPeriod" value="10" min="1" step="1" oninput="recomputeUTAndRender()" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">ATR Mult</label>
+              <input type="number" class="input" id="utAtrMult" value="1.0" min="0.1" step="0.1" oninput="recomputeUTAndRender()" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Target R</label>
+              <input type="number" class="input" id="targetR" value="2.0" min="0.5" step="0.5" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Auto-fill from signal</label>
+              <select class="select" id="autoFill">
+                <option value="true" selected>Enabled</option>
+                <option value="false">Disabled</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="small">
+            Fixes in this file:
+            <br/>• For <b>short</b>, stop is above entry and target is below entry (and the risk/profit box flips correctly).
+            <br/>• While you are <b>in a trade</b>, we still plot UT signals, but we <b>ignore flips</b> (no auto-fill) until the position closes.
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="section-title">Order Box</div>
+        <div class="form">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Side <span class="hint">auto from signal</span></label>
+              <select class="select" id="side" onchange="calculateRisk()">
+                <option value="BUY" selected>BUY (Long)</option>
+                <option value="SELL">SELL (Short)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Quantity</label>
+              <input type="number" class="input" id="quantity" value="100" oninput="calculateRisk()" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Entry Price <span class="hint">drag line</span></label>
+              <input type="number" class="input" id="entryPrice" value="447.82" step="0.01" oninput="calculateRisk()" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Stop Loss <span class="hint">drag line</span></label>
+              <input type="number" class="input" id="stopLoss" value="445.32" step="0.01" oninput="calculateRisk()" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Take Profit <span class="hint">drag line</span></label>
+              <input type="number" class="input" id="takeProfit" value="452.82" step="0.01" oninput="calculateRisk()" />
+            </div>
+          </div>
+
+          <div class="risk-display">
+            <div class="risk-row">
+              <span class="risk-label">Risk/Share</span>
+              <span class="risk-value neg" id="riskPerShare">$0.00</span>
+            </div>
+            <div class="risk-row">
+              <span class="risk-label">Reward/Share</span>
+              <span class="risk-value pos" id="rewardPerShare">$0.00</span>
+            </div>
+            <div class="risk-row">
+              <span class="risk-label">R:R</span>
+              <span class="risk-value" id="rrRatio">—</span>
+            </div>
+            <div class="risk-row">
+              <span class="risk-label">Unrealized P&L</span>
+              <span class="risk-value" id="pnlNow">$0.00</span>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <button class="btn btn-primary" onclick="closePosition()">Close Position</button>
+            <button class="btn btn-ghost" onclick="moveStopToBreakeven()">Move SL → BE</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // -----------------------------
+    // State / series
+    // -----------------------------
+    let chart;
+    let candlestickSeries;
+    let utTrailSeries;
+
+    // Sim data storage
+    let candleData = [];
+    const CANDLE_INTERVAL_SEC = 300; // 5m bars
+
+    // Built-in price lines (axis labels)
+    let entryPriceLine, stopPriceLine, tpPriceLine;
+
+    // Drag overlays
+    const els = {};
+    const drag = { active: false, which: null };
+
+    // Trade state (paper sim for "in-trade" gating)
+    const trade = {
+      open: false,
+      side: null,     // 'BUY' or 'SELL'
+      entry: null,
+      stop: null,
+      target: null,
+      qty: 0,
+      lastExit: '—',
+      lastFill: '—',
+      autoExit: true
+    };
+
+    // UT tracking
+    let lastProcessedSignalTime = null;
+
+    // Helpers
+    const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+    const fmt = (n) => `$${Number(n).toFixed(2)}`;
+
+    function toast(title, body) {
+      const t = document.getElementById('toast');
+      document.getElementById('toastTitle').innerHTML = title;
+      document.getElementById('toastBody').innerHTML = body;
+      t.classList.add('show');
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => t.classList.remove('show'), 2600);
+    }
+
+    function getLastPrice() {
+      const last = candleData[candleData.length - 1];
+      return last ? last.close : null;
+    }
+
+    // -----------------------------
+    // UT Bot-ish trail + signals
+    // -----------------------------
+    function computeATR(data, period = 10) {
+      if (!data || data.length < period + 2) return [];
+      const tr = [];
+      for (let i = 1; i < data.length; i++) {
+        const high = data[i].high;
+        const low = data[i].low;
+        const prevClose = data[i - 1].close;
+        const trueRange = Math.max(
+          high - low,
+          Math.abs(high - prevClose),
+          Math.abs(low - prevClose)
+        );
+        tr.push(trueRange);
+      }
+      const atr = new Array(data.length).fill(null);
+      for (let i = period - 1; i < tr.length; i++) {
+        let sum = 0;
+        for (let k = i - period + 1; k <= i; k++) sum += tr[k];
+        atr[i + 1] = sum / period;
+      }
+      return atr;
+    }
+
+    /**
+     * UT trail + flip markers.
+     * markers include __stop so we can auto-fill stop at flip bar.
+     */
+    function computeUTBotTrailAndSignals(data, atrPeriod = 10, atrMult = 1.0) {
+      const atr = computeATR(data, atrPeriod);
+      const trail = [];
+      const markers = [];
+      if (!data || data.length < atrPeriod + 2) return { trail, markers };
+
+      let longMode = true;
+      let stop = null;
+
+      for (let i = 0; i < data.length; i++) {
+        const bar = data[i];
+        const a = atr[i];
+        if (a == null) {
+          trail.push({ time: bar.time, value: null });
+          continue;
+        }
+
+        const dist = a * atrMult;
+
+        if (stop == null) {
+          stop = longMode ? (bar.close - dist) : (bar.close + dist);
+        }
+
+        if (longMode) {
+          const candidate = bar.close - dist;
+          stop = Math.max(stop, candidate);
+          if (bar.close < stop) {
+            longMode = false;
+            stop = bar.close + dist;
+            markers.push({ time: bar.time, position: 'aboveBar', color: '#ef5350', shape: 'arrowDown', text: 'SELL', __stop: stop });
+          }
+        } else {
+          const candidate = bar.close + dist;
+          stop = Math.min(stop, candidate);
+          if (bar.close > stop) {
+            longMode = true;
+            stop = bar.close - dist;
+            markers.push({ time: bar.time, position: 'belowBar', color: '#26a69a', shape: 'arrowUp', text: 'BUY', __stop: stop });
+          }
+        }
+
+        trail.push({ time: bar.time, value: stop });
+      }
+
+      return { trail, markers };
+    }
+
+    function recomputeUTAndRender() {
+      if (!candlestickSeries || !utTrailSeries) return;
+      const p = parseInt(document.getElementById('utAtrPeriod').value) || 10;
+      const m = parseFloat(document.getElementById('utAtrMult').value) || 1.0;
+
+      const out = computeUTBotTrailAndSignals(candleData, p, m);
+      utTrailSeries.setData(out.trail.filter(pt => pt.value != null));
+      candlestickSeries.setMarkers(out.markers.map(x => ({ time: x.time, position: x.position, color: x.color, shape: x.shape, text: x.text })));
+
+      maybeAutoFillFromLatestFlip(out);
+    }
+
+    function maybeAutoFillFromLatestFlip(out) {
+      const autoFill = document.getElementById('autoFill').value === 'true';
+      if (!autoFill) return;
+      if (!out || !out.markers || out.markers.length === 0) return;
+
+      // IMPORTANT FIX: If we are in a trade, do NOT act on flips. Just display markers.
+      if (trade.open) return;
+
+      const lastBar = candleData[candleData.length - 1];
+      const lastMarker = out.markers[out.markers.length - 1];
+
+      // Only auto-fill when the marker happened on the most recent bar
+      if (lastMarker.time !== lastBar.time) return;
+      if (lastProcessedSignalTime === lastMarker.time) return;
+
+      lastProcessedSignalTime = lastMarker.time;
+
+      const side = lastMarker.text; // "BUY" or "SELL"
+      const entry = lastBar.close;
+
+      let stop = lastMarker.__stop;
+      if (stop == null) {
+        const trailPt = out.trail[out.trail.length - 1];
+        stop = trailPt ? trailPt.value : null;
+      }
+      if (stop == null) return;
+
+      const R = parseFloat(document.getElementById('targetR').value) || 2.0;
+      const risk = Math.abs(entry - stop);
+      if (risk <= 0) return;
+
+      const target = (side === 'BUY') ? (entry + R * risk) : (entry - R * risk);
+
+      // Update form
+      document.getElementById('side').value = side;
+      document.getElementById('entryPrice').value = entry.toFixed(2);
+      document.getElementById('stopLoss').value = stop.toFixed(2);
+      document.getElementById('takeProfit').value = target.toFixed(2);
+
+      calculateRisk();
+
+      toast('UT Bot Flip (Auto-filled)',
+        `Signal: <b>${side}</b><br/>Entry <b>${fmt(entry)}</b>, Stop <b>${fmt(stop)}</b>, Target <b>${fmt(target)}</b>.`);
+    }
+
+    // -----------------------------
+    // Chart init
+    // -----------------------------
+    function initializeChart() {
+      const wrapper = document.getElementById('chartWrapper');
+
+      chart = LightweightCharts.createChart(wrapper, {
+        width: wrapper.clientWidth,
+        height: wrapper.clientHeight,
+        layout: { background: { color: '#0f1729' }, textColor: '#8892b0' },
+        grid: { vertLines: { color: '#1a1f3a' }, horzLines: { color: '#1a1f3a' } },
+        crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+        rightPriceScale: { borderColor: '#2a2f4a' },
+        timeScale: { borderColor: '#2a2f4a', timeVisible: true, secondsVisible: false },
+      });
+
+      candlestickSeries = chart.addCandlestickSeries({
+        upColor: '#26a69a',
+        downColor: '#ef5350',
+        borderVisible: false,
+        wickUpColor: '#26a69a',
+        wickDownColor: '#ef5350',
+      });
+
+      utTrailSeries = chart.addLineSeries({
+        lineWidth: 2,
+        title: 'UT Bot Trail',
+        color: '#f5d442',
+        priceLineVisible: false,
+        lastValueVisible: true,
+      });
+
+      candleData = generateChartData();
+      candlestickSeries.setData(candleData);
+
+      addOrderPriceLines();
+      cacheEls();
+      installDragHandlers();
+
+      // init header price
+      const last = candleData[candleData.length - 1];
+      document.getElementById('symPrice').textContent = fmt(last.close);
+      document.getElementById('symChange').textContent =
+        (last.close - last.open >= 0 ? '+' : '') + (last.close - last.open).toFixed(2) + ' (demo)';
+
+      calculateRisk();
+      recomputeUTAndRender();
+      updatePositionUI();
+
+      window.addEventListener('resize', () => {
+        chart.applyOptions({ width: wrapper.clientWidth, height: wrapper.clientHeight });
+        syncOverlayPositionsFromPrices();
+      });
+    }
+
+    function generateChartData() {
+      const data = [];
+      let basePrice = 440;
+      const now = Math.floor(Date.now() / 1000);
+      for (let i = 180; i >= 0; i--) {
+        const t = now - i * CANDLE_INTERVAL_SEC;
+        const open = basePrice;
+        const close = basePrice + (Math.random() - 0.45) * 8;
+        const high = Math.max(open, close) + Math.random() * 3;
+        const low = Math.min(open, close) - Math.random() * 3;
+        data.push({ time: t, open, high, low, close });
+        basePrice = close;
+      }
+      return data;
+    }
+
+    // -----------------------------
+    // Price lines
+    // -----------------------------
+    function addOrderPriceLines() {
+      entryPriceLine = candlestickSeries.createPriceLine({
+        price: Number(document.getElementById('entryPrice').value),
+        color: '#667eea',
+        lineWidth: 2,
+        lineStyle: LightweightCharts.LineStyle.Solid,
+        axisLabelVisible: true,
+        title: 'ENTRY',
+      });
+      stopPriceLine = candlestickSeries.createPriceLine({
+        price: Number(document.getElementById('stopLoss').value),
+        color: '#ef5350',
+        lineWidth: 2,
+        lineStyle: LightweightCharts.LineStyle.Dashed,
+        axisLabelVisible: true,
+        title: 'SL',
+      });
+      tpPriceLine = candlestickSeries.createPriceLine({
+        price: Number(document.getElementById('takeProfit').value),
+        color: '#26a69a',
+        lineWidth: 2,
+        lineStyle: LightweightCharts.LineStyle.Dashed,
+        axisLabelVisible: true,
+        title: 'TP',
+      });
+    }
+
+    function updateOrderPriceLines() {
+      entryPriceLine.applyOptions({ price: Number(document.getElementById('entryPrice').value) });
+      stopPriceLine.applyOptions({ price: Number(document.getElementById('stopLoss').value) });
+      tpPriceLine.applyOptions({ price: Number(document.getElementById('takeProfit').value) });
+    }
+
+    // -----------------------------
+    // Drag overlays
+    // -----------------------------
+    function cacheEls() {
+      els.lineEntry = document.getElementById('lineEntry');
+      els.lineStop = document.getElementById('lineStop');
+      els.lineTP = document.getElementById('lineTP');
+      els.handleEntry = document.getElementById('handleEntry');
+      els.handleStop = document.getElementById('handleStop');
+      els.handleTP = document.getElementById('handleTP');
+      els.labelEntry = document.getElementById('labelEntry');
+      els.labelStop = document.getElementById('labelStop');
+      els.labelTP = document.getElementById('labelTP');
+
+      els.ovEntry = document.getElementById('ovEntry');
+      els.ovStop = document.getElementById('ovStop');
+      els.ovTP = document.getElementById('ovTP');
+    }
+
+    function installDragHandlers() {
+      const bind = (handle, which) => {
+        handle.addEventListener('pointerdown', (e) => {
+          e.preventDefault();
+          handle.setPointerCapture(e.pointerId);
+          drag.active = true;
+          drag.which = which;
+        });
+
+        handle.addEventListener('pointermove', (e) => {
+          if (!drag.active || drag.which !== which) return;
+
+          const wrapper = document.getElementById('chartWrapper');
+          const rect = wrapper.getBoundingClientRect();
+          const y = clamp(e.clientY - rect.top, 0, rect.height);
+
+          const price = candlestickSeries.coordinateToPrice(y);
+          if (price == null) return;
+          const snapped = Math.round(price * 100) / 100;
+
+          if (which === 'ENTRY') {
+            const currentEntry = Number(document.getElementById('entryPrice').value);
+            const currentSL = Number(document.getElementById('stopLoss').value);
+            const currentTP = Number(document.getElementById('takeProfit').value);
+            const delta = snapped - currentEntry;
+            document.getElementById('entryPrice').value = (currentEntry + delta).toFixed(2);
+            document.getElementById('stopLoss').value = (currentSL + delta).toFixed(2);
+            document.getElementById('takeProfit').value = (currentTP + delta).toFixed(2);
+          } else if (which === 'SL') {
+            document.getElementById('stopLoss').value = snapped.toFixed(2);
+          } else if (which === 'TP') {
+            document.getElementById('takeProfit').value = snapped.toFixed(2);
+          }
+
+          calculateRisk();
+        });
+
+        handle.addEventListener('pointerup', () => { drag.active = false; drag.which = null; });
+        handle.addEventListener('pointercancel', () => { drag.active = false; drag.which = null; });
+      };
+
+      bind(els.handleEntry, 'ENTRY');
+      bind(els.handleStop, 'SL');
+      bind(els.handleTP, 'TP');
+    }
+
+    function syncOverlayPositionsFromPrices() {
+      const entry = Number(document.getElementById('entryPrice').value);
+      const sl = Number(document.getElementById('stopLoss').value);
+      const tp = Number(document.getElementById('takeProfit').value);
+
+      const yEntry = candlestickSeries.priceToCoordinate(entry);
+      const ySL = candlestickSeries.priceToCoordinate(sl);
+      const yTP = candlestickSeries.priceToCoordinate(tp);
+      if (yEntry == null || ySL == null || yTP == null) return;
+
+      const setLine = (el, y) => { el.style.top = `${y}px`; };
+      setLine(els.lineEntry, yEntry);
+      setLine(els.lineStop, ySL);
+      setLine(els.lineTP, yTP);
+
+      // Direction-aware RR rectangle
+      const side = document.getElementById('side').value; // BUY or SELL
+      const rrRect = document.getElementById('rrRect');
+      const rrProfit = document.getElementById('rrProfit');
+      const rrRisk = document.getElementById('rrRisk');
+      const rrMid = document.getElementById('rrMid');
+
+      const coords = [yEntry, ySL, yTP].filter(v => typeof v === 'number');
+      const top = Math.min(...coords);
+      const bottom = Math.max(...coords);
+      rrRect.style.top = `${top}px`;
+      rrRect.style.height = `${Math.max(0, bottom - top)}px`;
+
+      rrMid.style.top = `${yEntry - top}px`;
+
+      // Profit zone depends on side
+      if (side === 'BUY') {
+        // profit: entry -> tp ; risk: sl -> entry
+        rrProfit.style.top = `${Math.min(yTP, yEntry) - top}px`;
+        rrProfit.style.height = `${Math.abs(yTP - yEntry)}px`;
+
+        rrRisk.style.top = `${Math.min(ySL, yEntry) - top}px`;
+        rrRisk.style.height = `${Math.abs(ySL - yEntry)}px`;
+      } else {
+        // SHORT: profit: tp -> entry (tp below), risk: entry -> sl (sl above)
+        rrProfit.style.top = `${Math.min(yTP, yEntry) - top}px`;
+        rrProfit.style.height = `${Math.abs(yTP - yEntry)}px`;
+
+        rrRisk.style.top = `${Math.min(ySL, yEntry) - top}px`;
+        rrRisk.style.height = `${Math.abs(ySL - yEntry)}px`;
+      }
+    }
+
+    // -----------------------------
+    // Risk calc (direction-aware) + overlay sync
+    // -----------------------------
+    function calculateRisk() {
+      const qty = parseInt(document.getElementById('quantity').value) || 0;
+      const side = document.getElementById('side').value; // BUY or SELL
+      const entry = parseFloat(document.getElementById('entryPrice').value) || 0;
+      const stop = parseFloat(document.getElementById('stopLoss').value) || 0;
+      const target = parseFloat(document.getElementById('takeProfit').value) || 0;
+
+      // Direction-aware risk & reward
+      let riskPerShare, rewardPerShare;
+      if (side === 'BUY') {
+        riskPerShare = entry - stop;
+        rewardPerShare = target - entry;
+      } else {
+        riskPerShare = stop - entry;
+        rewardPerShare = entry - target;
+      }
+      riskPerShare = Math.max(0, riskPerShare);
+      rewardPerShare = Math.max(0, rewardPerShare);
+
+      const rr = riskPerShare > 0 ? (rewardPerShare / riskPerShare) : 0;
+
+      document.getElementById('riskPerShare').textContent = fmt(riskPerShare);
+      document.getElementById('rewardPerShare').textContent = fmt(rewardPerShare);
+      document.getElementById('rrRatio').textContent = riskPerShare > 0 ? `1:${rr.toFixed(2)}` : '—';
+
+      els.labelEntry.textContent = fmt(entry);
+      els.labelStop.textContent = fmt(stop);
+      els.labelTP.textContent = fmt(target);
+
+      els.ovEntry.textContent = fmt(entry);
+      els.ovStop.textContent = fmt(stop);
+      els.ovTP.textContent = fmt(target);
+
+      updateOrderPriceLines();
+      syncOverlayPositionsFromPrices();
+
+      // If in trade, keep trade SL/TP in sync
+      if (trade.open) {
+        trade.stop = stop;
+        trade.target = target;
+      }
+
+      updatePositionUI();
+    }
+
+    // -----------------------------
+    // Position UI + Paper execution
+    // -----------------------------
+    function updatePositionUI() {
+      const badge = document.getElementById('posBadge');
+      const ovPos = document.getElementById('ovPos');
+      const ovPnl = document.getElementById('ovPnl');
+      const pnlNowEl = document.getElementById('pnlNow');
+
+      const lastPx = getLastPrice();
+      let pnl = 0;
+      if (trade.open && lastPx != null && trade.entry != null) {
+        const dir = trade.side === 'BUY' ? 1 : -1;
+        pnl = (lastPx - trade.entry) * dir * trade.qty;
+      }
+
+      ovPnl.textContent = fmt(pnl);
+      ovPnl.className = 'overlay-value ' + (pnl >= 0 ? 'pos' : 'neg');
+
+      pnlNowEl.textContent = fmt(pnl);
+      pnlNowEl.className = 'risk-value ' + (pnl >= 0 ? 'pos' : 'neg');
+
+      if (!trade.open) {
+        badge.textContent = 'FLAT';
+        badge.className = 'overlay-badge badge-flat';
+        ovPos.textContent = '—';
+      } else {
+        badge.textContent = (trade.side === 'BUY') ? 'LONG' : 'SHORT';
+        badge.className = 'overlay-badge ' + ((trade.side === 'BUY') ? 'badge-long' : 'badge-short');
+        ovPos.textContent = `${trade.side === 'BUY' ? 'LONG' : 'SHORT'} @ ${fmt(trade.entry)} x${trade.qty}`;
+      }
+    }
+
+    function executeTrade(side) {
+      if (trade.open) {
+        toast('In Trade', 'Close the current trade first. (We ignore UT flips while in-trade.)');
+        return;
+      }
+
+      // Fill at current close (paper)
+      const px = getLastPrice();
+      if (px == null) return;
+
+      // Use current order box values as SL/TP
+      const entry = px;
+      const stop = Number(document.getElementById('stopLoss').value);
+      const target = Number(document.getElementById('takeProfit').value);
+      const qty = parseInt(document.getElementById('quantity').value) || 0;
+
+      // Snap entry to fill
+      document.getElementById('side').value = side;
+      document.getElementById('entryPrice').value = entry.toFixed(2);
+
+      trade.open = true;
+      trade.side = side;
+      trade.entry = entry;
+      trade.stop = stop;
+      trade.target = target;
+      trade.qty = qty;
+
+      calculateRisk();
+
+      toast('Filled (Paper)',
+        `Entered <b>${side === 'BUY' ? 'LONG' : 'SHORT'}</b> @ <b>${fmt(entry)}</b> x${qty}.<br/>While in-trade, UT flips are ignored until exit.`);
+    }
+
+    function closePosition() {
+      if (!trade.open) {
+        toast('No Position', 'You are flat.');
+        return;
+      }
+      const px = getLastPrice() ?? trade.entry;
+      const dir = trade.side === 'BUY' ? 1 : -1;
+      const pnl = (px - trade.entry) * dir * trade.qty;
+
+      trade.open = false;
+      trade.side = null;
+      trade.entry = null;
+      trade.stop = null;
+      trade.target = null;
+      trade.qty = 0;
+
+      toast('Closed (Paper)', `Closed @ <b>${fmt(px)}</b>. Realized P&L: <b>${fmt(pnl)}</b>`);
+      updatePositionUI();
+    }
+
+    
+    function moveStopToBreakeven() {
+      if (!trade.open) {
+        toast('No Position', 'Move-to-BE only works when a position is open.');
+        return;
+      }
+      if (trade.entry == null) {
+        toast('Error', 'Trade entry is missing. Execute a trade first.');
+        return;
+      }
+
+      // True break-even stop = entry (optionally add tiny offset if desired)
+      const be = Number(trade.entry);
+
+      // Update both UI and trade state immediately
+      trade.stop = be;
+      document.getElementById('stopLoss').value = be.toFixed(2);
+
+      // Keep UI consistent: if user wants SL to stay on correct side visually for short/long,
+      // BE is still the entry line - that's expected.
+      calculateRisk();
+
+      toast('SL moved to Break Even', `Stop set to entry: <b>${fmt(be)}</b>.`);
+    }
+
+    function checkAutoExitOnBar(bar) {
+      if (!trade.open) return;
+      const px = bar.close;
+
+      if (trade.side === 'BUY') {
+        if (px <= trade.stop) {
+          autoExit('STOP_LOSS', trade.stop);
+        } else if (px >= trade.target) {
+          autoExit('TAKE_PROFIT', trade.target);
+        }
+      } else {
+        if (px >= trade.stop) {
+          autoExit('STOP_LOSS', trade.stop);
+        } else if (px <= trade.target) {
+          autoExit('TAKE_PROFIT', trade.target);
+        }
+      }
+    }
+
+    function autoExit(reason, exitPx) {
+      const dir = trade.side === 'BUY' ? 1 : -1;
+      const pnl = (exitPx - trade.entry) * dir * trade.qty;
+
+      trade.open = false;
+      const wasSide = trade.side;
+      trade.side = null;
+      trade.entry = null;
+      trade.stop = null;
+      trade.target = null;
+      trade.qty = 0;
+
+      toast('Auto Exit (Paper)', `${reason} hit. Exited ${wasSide === 'BUY' ? 'LONG' : 'SHORT'} @ <b>${fmt(exitPx)}</b>.<br/>Realized P&L: <b>${fmt(pnl)}</b>`);
+      updatePositionUI();
+    }
+
+    // -----------------------------
+    // Sim streaming updates
+    // -----------------------------
+    function appendNewCandle() {
+      const last = candleData[candleData.length - 1];
+      const nextTime = last.time + CANDLE_INTERVAL_SEC;
+
+      const open = last.close;
+      const close = open + (Math.random() - 0.45) * 6;
+      const high = Math.max(open, close) + Math.random() * 2.5;
+      const low = Math.min(open, close) - Math.random() * 2.5;
+
+      const bar = { time: nextTime, open, high, low, close };
+      candleData.push(bar);
+      if (candleData.length > 900) candleData.shift();
+
+      candlestickSeries.update(bar);
+
+      document.getElementById('symPrice').textContent = fmt(close);
+      document.getElementById('symChange').textContent =
+        (close - open >= 0 ? '+' : '') + (close - open).toFixed(2) + ' (demo)';
+
+      // Auto exit checks first (position management)
+      checkAutoExitOnBar(bar);
+
+      // Update UT + markers (auto-fill is gated while in-trade)
+      recomputeUTAndRender();
+
+      // Update pnl
+      updatePositionUI();
+
+      // Keep overlay aligned
+      syncOverlayPositionsFromPrices();
+    }
+
+    // -----------------------------
+    // Misc UI
+    // -----------------------------
+    function changeTimeframe(tf, ev) {
+      document.querySelectorAll('.tf-btn').forEach(btn => btn.classList.remove('active'));
+      if (ev && ev.target) ev.target.classList.add('active');
+      toast('Timeframe (UI only)', `Selected timeframe: <b>${tf}</b> (demo UI only).`);
+    }
+
+    // -----------------------------
+    // Init
+    // -----------------------------
+    window.addEventListener('load', () => {
+      initializeChart();
+
+      // typing in form updates overlays
+      ['entryPrice','stopLoss','takeProfit','quantity','side'].forEach(id => {
+        document.getElementById(id).addEventListener('input', () => calculateRisk());
+        document.getElementById(id).addEventListener('change', () => calculateRisk());
+      });
+    });
+
+    // New bar every 2s (demo)
+    setInterval(() => {
+      if (!candlestickSeries) return;
+      appendNewCandle();
+    }, 2000);
+  </script>
+</body>
+</html>

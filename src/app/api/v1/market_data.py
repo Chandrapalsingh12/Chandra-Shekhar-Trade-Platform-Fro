@@ -1,5 +1,5 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from typing import List
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
+from typing import List, Optional
 from src.app.infrastructure.market_data.databento import market_data_client
 from src.app.infrastructure.websockets.manager import ws_manager
 from src.app.domain.services.utbot import UTBotStrategy
@@ -7,12 +7,18 @@ from src.app.domain.services.utbot import UTBotStrategy
 router = APIRouter()
 
 @router.get("/history/{symbol}")
-async def get_market_history(symbol: str) -> List[dict]:
+async def get_market_history(
+    symbol: str,
+    interval: str = Query(default="1m", pattern="^(1s|1m|1h|1d)$", description="OHLCV interval")
+) -> List[dict]:
     """
-    Returns the last N bars for the chart.
-    Visual Context only.
+    Returns historical OHLCV bars for the chart.
+    
+    Args:
+        symbol: Trading symbol (e.g., 'TSLA', 'ES.c.0')
+        interval: Timeframe - '1s', '1m', '1h', '1d' (default: 1m)
     """
-    return await market_data_client.get_history(symbol)
+    return await market_data_client.get_history(symbol, interval=interval)
 
 @router.websocket("/ws/{symbol}")
 async def websocket_endpoint(websocket: WebSocket, symbol: str):

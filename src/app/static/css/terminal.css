@@ -19,8 +19,8 @@
     --green: #00d4aa;
     --red: #ff4757;
     --yellow: #ffc107;
-    --sidebar-width: 200px;
-    --exec-width: 220px;
+    --sidebar-width: 160px;
+    --exec-width: 260px;
 }
 
 body {
@@ -256,18 +256,18 @@ body {
 /* ========== WATCHLIST ========== */
 .watchlist {
     flex: 1;
-    padding: 8px;
+    padding: 4px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
     overflow-y: auto;
 }
 
 .ticker-card {
     background: var(--bg3);
     border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 8px 10px;
+    border-radius: 4px;
+    padding: 6px 4px;
     cursor: pointer;
     transition: all 0.15s ease;
 }
@@ -318,21 +318,29 @@ body {
 }
 
 .ticker-symbol {
-    font-size: 13px;
-    font-weight: 700;
+    font-size: 11px;
+    /* Reduced font size */
+    font-weight: 800;
+    /* Increased font weight */
     flex: 1;
+    color: var(--text);
+    /* Changed color */
 }
 
 .ticker-price {
     font-size: 11px;
+    /* Reduced font size */
     color: var(--muted);
+    font-weight: 700;
+    /* Added font weight */
 }
 
 /* Arrows Row (b, c, e) */
 .arrows-row {
     display: flex;
     justify-content: space-between;
-    gap: 2px;
+    gap: 1px;
+    /* Increased gap */
 }
 
 .arrow-box {
@@ -341,11 +349,14 @@ body {
     align-items: center;
     justify-content: center;
     padding: 2px 0;
-    border-radius: 3px;
+    border-radius: 2px;
     cursor: pointer;
     transition: background 0.15s ease;
-    min-width: 22px;
+    min-width: 18px;
     text-align: center;
+    gap: 0;
+    flex: 1;
+    border-radius: 2px;
 }
 
 .arrow-box:hover {
@@ -387,7 +398,7 @@ body {
 }
 
 .tf-label {
-    font-size: 8px;
+    font-size: 7px;
     color: var(--muted);
     font-weight: 600;
 }
@@ -414,11 +425,25 @@ body {
     border-top: 1px solid var(--border);
 }
 
-.account-box .label {
-    font-size: 9px;
-    font-weight: 700;
-    color: var(--yellow);
-    letter-spacing: 1px;
+.account-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.reset-btn {
+    background: transparent;
+    border: none;
+    font-size: 10px;
+    cursor: pointer;
+    opacity: 0.5;
+    transition: all 0.2s;
+}
+
+.reset-btn:hover {
+    opacity: 1;
+    transform: rotate(180deg);
 }
 
 .account-box .balance {
@@ -463,6 +488,8 @@ body {
     display: flex;
     flex-direction: row;
     min-height: 0;
+    position: relative;
+    /* Bound maximized charts */
 }
 
 .chart-pane {
@@ -493,21 +520,55 @@ body {
     background: rgba(41, 98, 255, 0.05);
 }
 
-.chart-pane.active::before {
-    content: 'ARMED';
+/* Staged & Armed Glows (Targeted to active chart) */
+.chart-pane.selected-context.staged {
+    border-color: #f5d442 !important;
+    box-shadow: inset 0 0 0 2px #f5d442, 0 0 15px rgba(245, 212, 66, 0.3);
+}
+
+.chart-pane.selected-context.armed {
+    border-color: #ef5350 !important;
+    box-shadow: inset 0 0 0 2px #ef5350, 0 0 20px rgba(239, 83, 80, 0.4);
+}
+
+.chart-mode-badge {
     position: absolute;
-    top: 8px;
-    right: 8px;
-    background: var(--accent);
-    color: white;
-    padding: 3px 8px;
+    top: 45px;
+    /* Stay below the chart toolbar */
+    right: 12px;
+    padding: 3px 10px;
     border-radius: 4px;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    z-index: 1000;
+    font-size: 11px;
+    font-weight: 800;
+    z-index: 2000;
+    /* Ensure it stays above everything */
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: none;
+    /* Hidden by default */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
     pointer-events: none;
-    box-shadow: 0 2px 8px rgba(41, 98, 255, 0.6);
+}
+
+/* Visibility logic - Only show if both selected-context AND a mode is active */
+.chart-pane.selected-context.staged .chart-mode-badge {
+    display: block;
+    background: #f5d442;
+    color: #0a0e13;
+}
+
+.chart-pane.selected-context.staged .chart-mode-badge::after {
+    content: "STAGED";
+}
+
+.chart-pane.selected-context.armed .chart-mode-badge {
+    display: block;
+    background: #ef5350;
+    color: white;
+}
+
+.chart-pane.selected-context.armed .chart-mode-badge::after {
+    content: "ARMED";
 }
 
 .chart-widget {
@@ -518,23 +579,26 @@ body {
 /* Chart Selector Badge (clickable chart number) */
 .chart-selector-badge {
     position: absolute;
-    top: 8px;
-    left: 8px;
-    width: 28px;
-    height: 28px;
-    background: rgba(26, 34, 45, 0.9);
-    border: 1px solid var(--border);
-    border-radius: 6px;
+    bottom: 6px;
+    left: 165px;
+    /* Right after Date Range selector */
+    width: 24px;
+    height: 24px;
+    background: rgba(26, 34, 45, 0.95);
+    border: 1px solid var(--accent);
+    border-radius: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--muted);
+    font-size: 12px;
+    font-weight: 900;
+    color: var(--accent);
     cursor: pointer;
-    z-index: 1000;
+    z-index: 2000;
+    /* Higher z-index to ensure visibility over iframe */
     transition: all 0.2s ease;
     user-select: none;
+    box-shadow: 0 0 10px rgba(41, 98, 255, 0.3);
 }
 
 .chart-selector-badge:hover {
@@ -604,18 +668,27 @@ body {
 .chart-btn-maximize {
     min-width: 38px;
     padding: 10px 12px;
-    background: rgba(26, 34, 45, 0.9);
+    background: rgba(26, 34, 45, 0.95);
     font-size: 16px;
     position: absolute;
-    top: 8px;
-    right: 8px;
-    bottom: auto;
+    bottom: 40px;
+    right: 10px;
+    top: auto;
     left: auto;
+    z-index: 1001;
+    border: 2px solid var(--border);
+    border-radius: 6px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 .chart-btn-maximize:hover {
     background: var(--accent);
     border-color: var(--accent);
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(41, 98, 255, 0.5);
 }
 
 .price-label {
@@ -627,20 +700,198 @@ body {
     letter-spacing: 0.3px;
 }
 
+/* Draggable Interactive Overlays (Lightweight Charts) */
+.drag-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 9;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.drag-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 0;
+    border-top: 1px solid transparent;
+    pointer-events: none;
+}
+
+.drag-line.entry {
+    border-top-color: var(--accent);
+    border-top-width: 2px;
+}
+
+.drag-line.stop {
+    border-top-color: #ef5350;
+    border-top-style: dashed;
+    border-top-width: 2px;
+}
+
+.drag-line.tp {
+    border-top-color: #26a69a;
+    border-top-style: dashed;
+    border-top-width: 2px;
+}
+
+.drag-handle {
+    position: absolute;
+    right: 50px;
+    top: -12px;
+    height: 24px;
+    background: rgba(10, 14, 19, 0.9);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 10px;
+    font-size: 11px;
+    font-weight: 700;
+    color: white;
+    cursor: ns-resize;
+    pointer-events: auto;
+    user-select: none;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.drag-handle:hover {
+    transform: scale(1.05);
+    border-color: white;
+    z-index: 10;
+}
+
+.drag-handle.entry {
+    border-left: 3px solid var(--accent);
+}
+
+.drag-handle.stop {
+    border-left: 3px solid #ef5350;
+}
+
+.drag-handle.tp {
+    border-left: 3px solid #26a69a;
+}
+
+.pill {
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 9px;
+    font-weight: 800;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.drag-handle.entry .pill {
+    color: var(--accent);
+}
+
+.drag-handle.stop .pill {
+    color: #ef5350;
+}
+
+.drag-handle.tp .pill {
+    color: #26a69a;
+}
+
+/* Profit/Risk Shading Zone */
+.rr-rect {
+    position: absolute;
+    left: 0;
+    right: 0;
+    pointer-events: none;
+    z-index: 8;
+    overflow: hidden;
+    opacity: 0.15;
+}
+
+.rr-profit {
+    background: #26a69a;
+}
+
+.rr-risk {
+    background: #ef5350;
+}
+
 /* Maximized Chart State */
 .chart-pane.maximized {
-    position: fixed;
+    position: absolute;
     top: 0;
     left: 0;
-    width: 100vw !important;
-    height: 100vh !important;
-    z-index: 9999;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 50;
+    /* Lower than badges but fills container */
     flex: none !important;
+    background: var(--bg);
 }
 
 .chart-pane.maximized~.chart-pane,
 .chart-pane.maximized~.resize-handle {
     display: none;
+}
+
+/* Position State Overlay (Chart 1) */
+.position-overlay {
+    position: absolute;
+    top: 50px;
+    left: 10px;
+    background: rgba(10, 14, 19, 0.92);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    z-index: 100;
+    min-width: 200px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.overlay-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+}
+
+.overlay-title {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+}
+
+.overlay-badge {
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.overlay-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.overlay-label {
+    color: var(--muted);
+    font-weight: 600;
+}
+
+.overlay-value {
+    font-weight: 700;
+    color: var(--text);
+}
+
+.overlay-value.pos {
+    color: #26a69a;
+}
+
+.overlay-value.neg {
+    color: #ef5350;
 }
 
 /* Resize Handle - HORIZONTAL (between charts) */
@@ -851,4 +1102,337 @@ body {
 ::-webkit-scrollbar-thumb {
     background: var(--border);
     border-radius: 3px;
+}
+
+/* ========== ENHANCED ORDER BOX ========== */
+.position-state {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    background: var(--bg3);
+    border-radius: 6px;
+    margin-bottom: 12px;
+}
+
+.state-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+}
+
+.state-badge {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.badge-flat {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--muted);
+}
+
+.badge-long {
+    background: rgba(38, 166, 154, 0.2);
+    color: #26a69a;
+    border: 1px solid rgba(38, 166, 154, 0.4);
+}
+
+.badge-short {
+    background: rgba(239, 83, 80, 0.2);
+    color: #ef5350;
+    border: 1px solid rgba(239, 83, 80, 0.4);
+}
+
+.order-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.order-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.order-group {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-bottom: 8px;
+}
+
+.order-grid .order-group {
+    margin-bottom: 0;
+}
+
+.order-label {
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    display: flex;
+    justify-content: space-between;
+}
+
+.order-label .hint {
+    color: var(--accent);
+    font-size: 8px;
+}
+
+.order-input,
+.order-select {
+    padding: 5px 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-size: 11px;
+    font-weight: 700;
+    outline: none;
+    transition: border-color 0.15s ease;
+}
+
+.order-input:focus,
+.order-select:focus {
+    border-color: var(--accent);
+    background: var(--bg3);
+}
+
+.risk-display {
+    background: rgba(41, 98, 255, 0.1);
+    border: 1px solid rgba(41, 98, 255, 0.3);
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 12px;
+}
+
+.risk-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    font-size: 12px;
+}
+
+.risk-row:last-child {
+    margin-bottom: 0;
+}
+
+.risk-label {
+    color: var(--muted);
+    font-weight: 600;
+}
+
+.risk-value {
+    font-weight: 800;
+}
+
+.risk-value.pos {
+    color: #26a69a;
+}
+
+.risk-value.neg {
+    color: #ef5350;
+}
+
+.position-btns {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.btn-close {
+    flex: 1;
+    padding: 10px;
+    background: var(--accent);
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-close:hover {
+    background: #3a7bff;
+    transform: translateY(-1px);
+}
+
+.btn-be {
+    flex: 1;
+    padding: 10px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-be:hover {
+    background: var(--bg3);
+    border-color: var(--accent);
+}
+
+/* ========== TRADINGVIEW BUTTON ========== */
+.tv-btn {
+    margin-left: auto;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.tv-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+}
+
+/* ========== TRADINGVIEW MODAL ========== */
+.tv-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 9999;
+    backdrop-filter: blur(8px);
+}
+
+.tv-modal.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tv-modal-content {
+    width: 90vw;
+    height: 90vh;
+    background: var(--bg);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.tv-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.tv-modal-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.tv-modal-close {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    transition: all 0.15s ease;
+}
+
+.tv-modal-close:hover {
+    background: var(--bg3);
+    color: var(--text);
+}
+
+.tradingview-widget-container {
+    flex: 1;
+    position: relative;
+}
+
+#tradingview_widget {
+    width: 100%;
+    height: 100%;
+}
+
+/* ========== EXECUTION CONTROLS ========== */
+.arm-controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+    margin-bottom: 10px;
+}
+
+.btn-staged,
+.btn-arm {
+    flex: 1;
+    padding: 12px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-staged:hover {
+    background: rgba(245, 212, 66, 0.1);
+    border-color: var(--yellow);
+    color: var(--yellow);
+}
+
+.btn-arm:hover:not(:disabled) {
+    background: rgba(38, 166, 154, 0.1);
+    border-color: var(--green);
+    color: var(--green);
+}
+
+.btn-arm:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    filter: grayscale(1);
+}
+
+.btn-kill {
+    width: 100%;
+    padding: 12px;
+    background: rgba(239, 83, 80, 0.1);
+    border: 1px solid var(--red);
+    border-radius: 8px;
+    color: var(--red);
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: all 0.2s;
+    letter-spacing: 1px;
+}
+
+.btn-kill:hover {
+    background: var(--red);
+    color: white;
+    box-shadow: 0 0 20px rgba(239, 83, 80, 0.3);
 }
